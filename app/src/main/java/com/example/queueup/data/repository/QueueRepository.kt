@@ -24,7 +24,8 @@ class QueueRepository {
                 )
                 Result.success(activeData)
             } else {
-                val errorMsg = response.errorBody()?.string() ?: "Failed to join queue"
+                val rawError = response.errorBody()?.string()
+                val errorMsg = com.example.queueup.utils.ErrorParser.parse(rawError)
                 Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {

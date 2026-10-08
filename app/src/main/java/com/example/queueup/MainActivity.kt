@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
@@ -44,12 +47,21 @@ class MainActivity : ComponentActivity() {
         ApiClient.init(sessionManager)
 
         setContent {
-            QueueUpTheme {
+            var isDarkMode by remember { mutableStateOf(sessionManager.isDarkModeEnabled()) }
+
+            QueueUpTheme(darkTheme = isDarkMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    QueueUpApp(sessionManager = sessionManager)
+                    QueueUpApp(
+                        sessionManager = sessionManager,
+                        isDarkMode = isDarkMode,
+                        onToggleDarkMode = { enabled ->
+                            sessionManager.setDarkModeEnabled(enabled)
+                            isDarkMode = enabled
+                        }
+                    )
                 }
             }
         }
@@ -57,7 +69,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun QueueUpApp(sessionManager: SessionManager) {
+fun QueueUpApp(
+    sessionManager: SessionManager,
+    isDarkMode: Boolean = false,
+    onToggleDarkMode: (Boolean) -> Unit = {}
+) {
     val context = LocalContext.current
     val navController = rememberNavController()
 
@@ -178,6 +194,8 @@ fun QueueUpApp(sessionManager: SessionManager) {
         composable("profile") {
             ProfileScreen(
                 profileViewModel = profileViewModel,
+                isDarkMode = isDarkMode,
+                onToggleDarkMode = onToggleDarkMode,
                 onBack = { navController.popBackStack() },
                 onLogoutDone = {
                     navController.navigate("login") {

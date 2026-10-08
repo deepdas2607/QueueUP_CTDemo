@@ -19,6 +19,7 @@ object Constants {
     const val KEY_USER_ROLE = "user_role"
     const val KEY_NOTIFICATIONS_ENABLED = "notifications_enabled"
     const val KEY_PRIVACY_CONSENT = "privacy_consent"
+    const val KEY_DARK_MODE = "dark_mode"
 
     const val CHANNEL_ID_QUEUE = "queue_status_channel"
     const val CHANNEL_NAME_QUEUE = "Queue Status Updates"

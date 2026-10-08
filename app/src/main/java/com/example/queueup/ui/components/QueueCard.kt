@@ -5,11 +5,13 @@
 
 package com.example.queueup.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
@@ -57,11 +59,12 @@ fun QueueCard(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    val isUserTurn = entry.position == 1 && activeQueueData.peopleAhead == 0
                     Text(
-                        text = "Status: WAITING",
+                        text = if (isUserTurn) "Status: READY (Your Turn)" else "Status: WAITING",
                         style = MaterialTheme.typography.labelMedium,
-                        color = SecondaryTeal,
-                        fontWeight = FontWeight.SemiBold
+                        color = if (isUserTurn) MaterialTheme.colorScheme.primary else SecondaryTeal,
+                        fontWeight = FontWeight.Bold
                     )
                 }
                 IconButton(onClick = onRefresh) {
@@ -73,6 +76,37 @@ fun QueueCard(
                 }
             }
 
+            val isUserTurn = entry.position == 1 && activeQueueData.peopleAhead == 0
+            if (isUserTurn) {
+                Spacer(modifier = Modifier.height(14.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = SecondaryTeal.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, SecondaryTeal.copy(alpha = 0.6f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = SecondaryTeal,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "🎉 It's Your Turn! Please proceed to the counter.",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = SecondaryTeal
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             // Prominent Position Display
@@ -80,21 +114,22 @@ fun QueueCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(PrimaryIndigo.copy(alpha = 0.1f))
+                    .background(if (isUserTurn) SecondaryTeal.copy(alpha = 0.15f) else PrimaryIndigo.copy(alpha = 0.1f))
                     .padding(vertical = 20.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Your Position",
+                        text = if (isUserTurn) "Now Serving" else "Your Position",
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (isUserTurn) SecondaryTeal else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (isUserTurn) FontWeight.Bold else FontWeight.Normal
                     )
                     Text(
                         text = "#${entry.position}",
                         fontSize = 42.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = PrimaryIndigo
+                        color = if (isUserTurn) SecondaryTeal else PrimaryIndigo
                     )
                 }
             }

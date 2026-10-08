@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.queueup.ui.components.ErrorBanner
 import com.example.queueup.ui.theme.PrimaryIndigo
 import com.example.queueup.ui.theme.SecondaryTeal
 import com.example.queueup.viewmodel.QueueViewModel
@@ -125,14 +126,11 @@ fun ServiceDetailScreen(
                         }
                     }
 
-                    queueViewModel.errorMessage?.let { error ->
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
+                    ErrorBanner(
+                        errorMessage = queueViewModel.errorMessage,
+                        modifier = Modifier.padding(top = 16.dp),
+                        onDismiss = { queueViewModel.errorMessage = null }
+                    )
 
                     Spacer(modifier = Modifier.weight(1f))
 

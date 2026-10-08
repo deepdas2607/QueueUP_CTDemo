@@ -115,4 +115,24 @@ object CleverTapProfile {
             cleverTap.pushProfile(statusData)
         }
     }
+
+    /**
+     * Increments lifetime count of queues joined.
+     */
+    fun incrementQueuesJoined() {
+        val cleverTap = CleverTapManager.getInstance().getInstance()
+        if (cleverTap != null && CleverTapConfig.isAnalyticsConsentGiven) {
+            cleverTap.incrementValue("Total Queues Joined", 1)
+        }
+    }
+
+    /**
+     * Increments count of completed queues.
+     */
+    fun incrementQueuesCompleted() {
+        val cleverTap = CleverTapManager.getInstance().getInstance()
+        if (cleverTap != null && CleverTapConfig.isAnalyticsConsentGiven) {
+            cleverTap.incrementValue("Completed Queues", 1)
+        }
+    }
 }

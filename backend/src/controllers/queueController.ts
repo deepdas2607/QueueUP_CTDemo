@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { QueueService } from '../services/queueService';
+import { SimulationService } from '../services/simulationService';
 import { AuthenticatedRequest } from '../types';
 import { logAuditAction } from '../services/auditService';
 
@@ -60,6 +61,8 @@ export class QueueController {
   static async refreshQueue(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.userId;
+      // Advance realistic queue simulation when user refreshes
+      await SimulationService.advanceUserQueue(userId);
       const active = await QueueService.getActiveQueue(userId);
       res.json({ activeQueue: active });
     } catch (error) {

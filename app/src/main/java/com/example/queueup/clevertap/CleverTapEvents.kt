@@ -27,6 +27,9 @@ object CleverTapEvents {
         const val QUEUE_JOINED = "Queue Joined"
         const val QUEUE_POSITION_VIEWED = "Queue Position Viewed"
         const val QUEUE_REFRESHED = "Queue Refreshed"
+        const val QUEUE_POSITION_UPDATED = "Queue Position Updated"
+        const val QUEUE_TURN_READY = "Queue Turn Ready"
+        const val QUEUE_SERVED = "Queue Served"
         const val QUEUE_LEFT = "Queue Left"
         const val QUEUE_COMPLETED = "Queue Completed"
 
@@ -163,6 +166,59 @@ object CleverTapEvents {
                 "serviceName" to serviceName,
                 "queuePosition" to queuePosition,
                 "peopleAhead" to peopleAhead
+            )
+        )
+    }
+
+    fun trackQueuePositionUpdated(
+        serviceName: String,
+        serviceId: String,
+        previousPosition: Int,
+        newPosition: Int,
+        peopleAhead: Int,
+        estimatedWaitMinutes: Int
+    ) {
+        logEvent(
+            Names.QUEUE_POSITION_UPDATED,
+            mapOf(
+                "serviceName" to serviceName,
+                "serviceId" to serviceId,
+                "previousPosition" to previousPosition,
+                "newPosition" to newPosition,
+                "peopleAhead" to peopleAhead,
+                "estimatedWaitMinutes" to estimatedWaitMinutes
+            )
+        )
+    }
+
+    fun trackQueueTurnReady(
+        serviceName: String,
+        serviceId: String,
+        tokenNumber: Int,
+        totalWaitDurationMinutes: Int = 0
+    ) {
+        logEvent(
+            Names.QUEUE_TURN_READY,
+            mapOf(
+                "serviceName" to serviceName,
+                "serviceId" to serviceId,
+                "tokenNumber" to tokenNumber,
+                "totalWaitDurationMinutes" to totalWaitDurationMinutes
+            )
+        )
+    }
+
+    fun trackQueueServed(
+        serviceName: String,
+        serviceId: String,
+        totalWaitMinutes: Int
+    ) {
+        logEvent(
+            Names.QUEUE_SERVED,
+            mapOf(
+                "serviceName" to serviceName,
+                "serviceId" to serviceId,
+                "totalWaitMinutes" to totalWaitMinutes
             )
         )
     }

@@ -14,30 +14,44 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
+import androidx.compose.ui.graphics.Color
+
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryIndigo,
-    secondary = SecondaryTeal,
-    tertiary = AccentOrange,
-    background = SurfaceLight,
-    surface = CardBackground,
-    onPrimary = CardBackground,
-    onSecondary = CardBackground,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary,
-    error = ErrorRed
+    primary = DarkPrimaryIndigo,
+    onPrimary = Color(0xFF0F172A),
+    secondary = DarkSecondaryTeal,
+    onSecondary = Color(0xFF0F172A),
+    tertiary = DarkAccentOrange,
+    background = DarkBackground,
+    surface = DarkSurface,
+    surfaceVariant = DarkSurfaceVariant,
+    onBackground = DarkTextPrimary,
+    onSurface = DarkTextPrimary,
+    onSurfaceVariant = DarkTextSecondary,
+    outline = DarkBorder,
+    outlineVariant = Color(0xFF475569),
+    error = DarkErrorRed,
+    errorContainer = Color(0xFF450A0A),
+    onErrorContainer = Color(0xFFFECACA)
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = PrimaryIndigo,
+    onPrimary = Color.White,
     secondary = SecondaryTeal,
+    onSecondary = Color.White,
     tertiary = AccentOrange,
     background = SurfaceLight,
     surface = CardBackground,
-    onPrimary = CardBackground,
-    onSecondary = CardBackground,
+    surfaceVariant = Color(0xFFF1F5F9),
     onBackground = TextPrimary,
     onSurface = TextPrimary,
-    error = ErrorRed
+    onSurfaceVariant = TextSecondary,
+    outline = BorderLight,
+    outlineVariant = Color(0xFFE2E8F0),
+    error = ErrorRed,
+    errorContainer = Color(0xFFFEF2F2),
+    onErrorContainer = Color(0xFF991B1B)
 )
 
 @Composable

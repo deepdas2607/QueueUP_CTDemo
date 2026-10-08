@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.queueup.ui.components.ErrorBanner
 import com.example.queueup.ui.components.QueueCard
 import com.example.queueup.ui.theme.PrimaryIndigo
 import com.example.queueup.viewmodel.QueueViewModel
@@ -58,6 +59,11 @@ fun QueueStatusScreen(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Center
                 ) {
+                    ErrorBanner(
+                        errorMessage = queueViewModel.errorMessage,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                        onDismiss = { queueViewModel.errorMessage = null }
+                    )
                     QueueCard(
                         activeQueueData = activeData,
                         onRefresh = { queueViewModel.refreshActiveQueue() },

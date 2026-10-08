@@ -11,6 +11,7 @@ import profileRoutes from './routes/profileRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 import contentRoutes from './routes/contentRoutes';
 import { errorHandler } from './middleware/errorHandler';
+import { SimulationService } from './services/simulationService';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -43,64 +44,15 @@ app.use('/api/content', contentRoutes);
 // Error Middleware
 app.use(errorHandler);
 
-// Seed Default Services if empty
-const seedServices = async () => {
-  try {
-    const count = await prisma.service.count();
-    if (count === 0) {
-      console.log('Seeding initial campus services...');
-      await prisma.service.createMany({
-        data: [
-          {
-            name: 'College Administration',
-            description: 'Transcript requests, fee payment, and official certificates',
-            averageServiceTime: 5,
-            currentWaitingCount: 0,
-            isOpen: true,
-          },
-          {
-            name: 'Library Help Desk',
-            description: 'Book issue, reference assistance, and study room allocation',
-            averageServiceTime: 3,
-            currentWaitingCount: 0,
-            isOpen: true,
-          },
-          {
-            name: 'Student Services',
-            description: 'ID cards, scholarship guidance, and hostel support',
-            averageServiceTime: 6,
-            currentWaitingCount: 0,
-            isOpen: true,
-          },
-          {
-            name: 'IT Support',
-            description: 'WiFi access issues, portal password resets, and hardware help',
-            averageServiceTime: 4,
-            currentWaitingCount: 0,
-            isOpen: true,
-          },
-          {
-            name: 'Canteen Counter',
-            description: 'Pre-order food collection and digital token redemption',
-            averageServiceTime: 2,
-            currentWaitingCount: 0,
-            isOpen: true,
-          },
-        ],
-      });
-      console.log('Services seeded successfully.');
-    }
-  } catch (error) {
-    console.error('Service Seeding Status:', (error as Error).message || error);
-  }
-};
-
 const startServer = async () => {
   try {
     await startLocalPostgres();
     app.listen(config.port, '0.0.0.0', async () => {
       console.log(`QueueUp Express REST API running on port ${config.port}`);
-      await seedServices();
+      // Bootstrap 12 campus counters and realistic simulated queues
+      await SimulationService.bootstrapSimulatedCampus();
+      // Start natural background queue movement simulation (every 30s)
+      SimulationService.startBackgroundTicker(30000);
     });
   } catch (error) {
     console.error('Server startup error:', error);

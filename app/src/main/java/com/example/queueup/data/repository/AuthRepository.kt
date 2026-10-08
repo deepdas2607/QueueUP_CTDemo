@@ -38,7 +38,9 @@ class AuthRepository(private val sessionManager: SessionManager) {
                 )
                 Result.success(authData.user)
             } else {
-                Result.failure(Exception("Registration failed: ${response.errorBody()?.string() ?: "Unknown error"}"))
+                val rawError = response.errorBody()?.string()
+                val parsed = com.example.queueup.utils.ErrorParser.parse(rawError)
+                Result.failure(Exception(parsed))
             }
         } catch (e: Exception) {
             Result.failure(e)

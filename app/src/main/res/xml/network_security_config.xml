@@ -13,3 +13,4 @@
         <domain includeSubdomains="true">192.168.30.151</domain>
     </domain-config>
 </network-security-config>
+

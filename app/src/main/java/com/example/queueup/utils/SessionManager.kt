@@ -60,6 +60,13 @@ class SessionManager(context: Context) {
         prefs.edit().putBoolean(Constants.KEY_PRIVACY_CONSENT, given).apply()
     }
 
+    fun isDarkModeEnabled(): Boolean =
+        prefs.getBoolean(Constants.KEY_DARK_MODE, false)
+
+    fun setDarkModeEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(Constants.KEY_DARK_MODE, enabled).apply()
+    }
+
     fun isLoggedIn(): Boolean {
         return !getAuthToken().isNullOrBlank()
     }

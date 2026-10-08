@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.queueup.ui.components.CustomTextField
+import com.example.queueup.ui.components.ErrorBanner
 import com.example.queueup.ui.theme.PrimaryIndigo
 import com.example.queueup.viewmodel.AuthViewModel
 
@@ -63,14 +64,11 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            authViewModel.errorMessage?.let { error ->
-                Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-            }
+            ErrorBanner(
+                errorMessage = authViewModel.errorMessage,
+                modifier = Modifier.padding(bottom = 12.dp),
+                onDismiss = { authViewModel.errorMessage = null }
+            )
 
             CustomTextField(
                 value = authViewModel.registerName,
