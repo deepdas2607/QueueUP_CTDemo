@@ -36,11 +36,28 @@ object ApiClient {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
+    private val hostFallbackInterceptor = Interceptor { chain ->
+        val originalRequest = chain.request()
+        try {
+            chain.proceed(originalRequest)
+        } catch (e: Exception) {
+            val url = originalRequest.url
+            val alternateHost = if (url.host == "127.0.0.1") "10.0.2.2" else "127.0.0.1"
+            val fallbackUrl = url.newBuilder().host(alternateHost).build()
+            val fallbackRequest = originalRequest.newBuilder().url(fallbackUrl).build()
+            chain.proceed(fallbackRequest)
+        }
+    }
+
     private val okHttpClient = OkHttpClient.Builder()
+        .proxy(java.net.Proxy.NO_PROXY)
+        .retryOnConnectionFailure(true)
+        .addInterceptor(hostFallbackInterceptor)
         .addInterceptor(authInterceptor)
         .addInterceptor(loggingInterceptor)
-        .connectTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(5, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
+        .writeTimeout(15, TimeUnit.SECONDS)
         .build()
 
     val apiService: ApiService by lazy {

@@ -18,6 +18,15 @@ const prisma = new PrismaClient();
 app.use(cors());
 app.use(express.json());
 
+// Request Logger
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    console.log(`[${req.method}] ${req.originalUrl} -> ${res.statusCode} (${Date.now() - start}ms) [from ${req.ip}]`);
+  });
+  next();
+});
+
 // Health Check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'QueueUp Backend (PostgreSQL)', timestamp: new Date() });

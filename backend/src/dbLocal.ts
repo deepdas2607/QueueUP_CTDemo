@@ -75,7 +75,15 @@ export async function startLocalPostgres(): Promise<PGLiteSocketServer | null> {
 
   startingPromise = (async () => {
     try {
-      const db = await PGlite.create(dbDataDir);
+      let db: PGlite;
+      try {
+        db = await PGlite.create(dbDataDir);
+      } catch (createErr: any) {
+        console.warn('⚠️ PGlite data directory inconsistent or unclosed lock after unclean exit. Recovering cleanly...');
+        const fs = await import('fs');
+        fs.rmSync(dbDataDir, { recursive: true, force: true });
+        db = await PGlite.create(dbDataDir);
+      }
       
       // Auto-ensure PostgreSQL schema and native enums exist
       await db.exec(schemaDDL);

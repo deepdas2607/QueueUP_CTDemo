@@ -6,8 +6,8 @@
 package com.example.queueup.utils
 
 object Constants {
-    // 10.0.2.2 points to localhost when running inside Android Emulator
-    const val BASE_URL = "http://10.0.2.2:3000/api/"
+    // 127.0.0.1 works seamlessly across all emulators and physical devices via adb reverse (with 10.0.2.2 fallback)
+    const val BASE_URL = "http://127.0.0.1:3000/api/"
 
     const val PREF_NAME = "queueup_prefs"
     const val KEY_AUTH_TOKEN = "auth_token"
