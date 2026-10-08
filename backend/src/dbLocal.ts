@@ -2,76 +2,120 @@
 // PURPOSE: Runs embedded WASM PostgreSQL server listening on 127.0.0.1:5432 over true Postgres wire protocol.
 // STORES DATA IN: backend/.pglite-data/
 
-import net from 'net';
-import fs from 'fs';
 import path from 'path';
-import { Readable, Writable } from 'stream';
 import { PGlite } from '@electric-sql/pglite';
-import { PostgresConnection } from 'pg-gateway';
+import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 
 const dbDataDir = path.resolve(process.cwd(), '.pglite-data');
 
-// Ensure data directory exists
-if (!fs.existsSync(dbDataDir)) {
-  fs.mkdirSync(dbDataDir, { recursive: true });
+const schemaDDL = `
+DO $$ BEGIN
+  CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "QueueStatus" AS ENUM ('WAITING', 'SERVED', 'CANCELLED');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "User" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT NOT NULL,
+  "email" TEXT UNIQUE NOT NULL,
+  "passwordHash" TEXT NOT NULL,
+  "occupation" TEXT,
+  "interests" TEXT,
+  "role" "Role" NOT NULL DEFAULT 'USER',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "lastActiveAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "Service" (
+  "id" TEXT PRIMARY KEY,
+  "name" TEXT NOT NULL,
+  "description" TEXT NOT NULL,
+  "averageServiceTime" INTEGER NOT NULL,
+  "currentWaitingCount" INTEGER NOT NULL DEFAULT 0,
+  "isOpen" BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "QueueEntry" (
+  "id" TEXT PRIMARY KEY,
+  "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
+  "serviceId" TEXT NOT NULL REFERENCES "Service"("id") ON DELETE CASCADE,
+  "position" INTEGER NOT NULL,
+  "status" "QueueStatus" NOT NULL DEFAULT 'WAITING',
+  "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "servedAt" TIMESTAMP(3),
+  "cancelledAt" TIMESTAMP(3)
+);
+
+CREATE TABLE IF NOT EXISTS "AuditLog" (
+  "id" TEXT PRIMARY KEY,
+  "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
+  "action" TEXT NOT NULL,
+  "entity" TEXT NOT NULL,
+  "entityId" TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+`;
+
+let serverInstance: PGLiteSocketServer | null = null;
+let startingPromise: Promise<PGLiteSocketServer | null> | null = null;
+
+export async function startLocalPostgres(): Promise<PGLiteSocketServer | null> {
+  if (serverInstance) return serverInstance;
+  if (startingPromise) return startingPromise;
+
+  startingPromise = (async () => {
+    try {
+      const db = await PGlite.create(dbDataDir);
+      
+      // Auto-ensure PostgreSQL schema and native enums exist
+      await db.exec(schemaDDL);
+
+      const server = new PGLiteSocketServer({
+        db,
+        port: 5432,
+        host: '127.0.0.1',
+        maxConnections: 20,
+      });
+
+      await server.start();
+      serverInstance = server;
+
+      console.log(`🚀 Embedded PostgreSQL Engine (PGlite) running on 127.0.0.1:5432`);
+      console.log(`📁 Local Data Directory: ${dbDataDir}`);
+      console.log(`🔗 Connection URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?schema=public`);
+
+      return serverInstance;
+    } catch (err: any) {
+      if (err.code === 'EADDRINUSE') {
+        console.log('⚡ PostgreSQL instance is already running on port 5432 (shared instance active).');
+      } else {
+        console.error('Failed to start embedded PostgreSQL server:', err.message || err);
+      }
+      return null;
+    } finally {
+      startingPromise = null;
+    }
+  })();
+
+  return startingPromise;
 }
 
-// Clean up stale lock/pid file if previous process was forcefully terminated
-const stalePidFile = path.join(dbDataDir, 'postmaster.pid');
-if (fs.existsSync(stalePidFile)) {
-  try {
-    fs.unlinkSync(stalePidFile);
-  } catch {
-    // Ignore cleanup errors
+export async function stopLocalPostgres(): Promise<void> {
+  if (serverInstance) {
+    await serverInstance.stop();
+    serverInstance = null;
   }
 }
 
-const db = new PGlite(dbDataDir);
-
-const server = net.createServer((socket) => {
-  socket.on('error', () => {});
-
-  try {
-    const duplex = {
-      readable: Readable.toWeb(socket),
-      writable: Writable.toWeb(socket),
-    };
-
-    new PostgresConnection(duplex as any, {
-      auth: { method: 'trust' },
-      serverVersion: '16.0',
-      async onQuery(query: string) {
-        try {
-          const res = await db.query(query);
-          return {
-            rows: res.rows ? res.rows.map((r: any) => Object.values(r)) : [],
-            columns: res.fields ? res.fields.map((f: any) => ({ name: f.name, type: f.dataTypeID })) : [],
-          };
-        } catch {
-          return { rows: [], columns: [] };
-        }
-      },
-    } as any);
-  } catch {
-    // Ignore teardowns
-  }
-});
-
-server.on('error', (err: any) => {
-  if (err.code === 'EADDRINUSE') {
-    console.log('⚡ PostgreSQL instance is already running on port 5432 (shared instance in use).');
-  } else {
-    console.error('PostgreSQL server error:', err.message || err);
-  }
-});
-
-process.on('uncaughtException', () => {});
-
-const PORT = 5432;
-const HOST = '127.0.0.1';
-
-server.listen(PORT, HOST, () => {
-  console.log(`🚀 Embedded PostgreSQL Engine (PGlite) running on ${HOST}:${PORT}`);
-  console.log(`📁 Local Data Directory: ${dbDataDir}`);
-  console.log(`🔗 Connection URL: postgresql://postgres:postgres@127.0.0.1:5432/queueup_db?schema=public`);
-});
+// Auto-start when imported or executed directly
+startLocalPostgres();

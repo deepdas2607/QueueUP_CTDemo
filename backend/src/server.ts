@@ -1,4 +1,4 @@
-import './dbLocal';
+import { startLocalPostgres } from './dbLocal';
 import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
@@ -86,7 +86,17 @@ const seedServices = async () => {
   }
 };
 
-app.listen(config.port, '0.0.0.0', async () => {
-  console.log(`QueueUp Express REST API running on port ${config.port}`);
-  await seedServices();
-});
+const startServer = async () => {
+  try {
+    await startLocalPostgres();
+    app.listen(config.port, '0.0.0.0', async () => {
+      console.log(`QueueUp Express REST API running on port ${config.port}`);
+      await seedServices();
+    });
+  } catch (error) {
+    console.error('Server startup error:', error);
+  }
+};
+
+startServer();
+
