@@ -9,7 +9,16 @@
 /.idea/assetWizardSettings.xml
 .DS_Store
 /build
+app/build
 /captures
 .externalNativeBuild
 .cxx
 local.properties
+
+# Backend Node & Database ignores
+node_modules/
+backend/node_modules/
+backend/dist/
+backend/.pglite-data/
+*.log
+backend/*.log

@@ -154,4 +154,79 @@ export class QueueService {
       include: { service: true },
     });
   }
+
+  static async adminServeQueue(adminUserId: string, queueEntryId: string) {
+    const entry = await prisma.queueEntry.findUnique({
+      where: { id: queueEntryId },
+    });
+
+    if (!entry) {
+      throw { status: 404, message: 'Queue entry not found' };
+    }
+
+    if (entry.status !== QueueStatus.WAITING) {
+      throw { status: 400, message: 'Queue entry is no longer waiting' };
+    }
+
+    const updated = await prisma.queueEntry.update({
+      where: { id: queueEntryId },
+      data: {
+        status: QueueStatus.SERVED,
+        servedAt: new Date(),
+      },
+      include: { service: true, user: true },
+    });
+
+    const remainingWaiting = await prisma.queueEntry.count({
+      where: {
+        serviceId: entry.serviceId,
+        status: QueueStatus.WAITING,
+      },
+    });
+
+    await prisma.service.update({
+      where: { id: entry.serviceId },
+      data: { currentWaitingCount: remainingWaiting },
+    });
+
+    return updated;
+  }
+
+  static async adminCancelQueue(adminUserId: string, queueEntryId: string) {
+    const entry = await prisma.queueEntry.findUnique({
+      where: { id: queueEntryId },
+    });
+
+    if (!entry) {
+      throw { status: 404, message: 'Queue entry not found' };
+    }
+
+    if (entry.status !== QueueStatus.WAITING) {
+      throw { status: 400, message: 'Queue entry is no longer waiting' };
+    }
+
+    const updated = await prisma.queueEntry.update({
+      where: { id: queueEntryId },
+      data: {
+        status: QueueStatus.CANCELLED,
+        cancelledAt: new Date(),
+      },
+      include: { service: true, user: true },
+    });
+
+    const remainingWaiting = await prisma.queueEntry.count({
+      where: {
+        serviceId: entry.serviceId,
+        status: QueueStatus.WAITING,
+      },
+    });
+
+    await prisma.service.update({
+      where: { id: entry.serviceId },
+      data: { currentWaitingCount: remainingWaiting },
+    });
+
+    return updated;
+  }
 }
+

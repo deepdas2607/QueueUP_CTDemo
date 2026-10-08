@@ -76,4 +76,29 @@ export class QueueController {
       next(error);
     }
   }
+
+  static async adminServeQueue(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const adminId = req.user!.userId;
+      const id = String(req.params.id);
+      const updated = await QueueService.adminServeQueue(adminId, id);
+      await logAuditAction(adminId, 'ADMIN_SERVED_QUEUE', 'QueueEntry', id);
+      res.json(updated);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async adminCancelQueue(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const adminId = req.user!.userId;
+      const id = String(req.params.id);
+      const updated = await QueueService.adminCancelQueue(adminId, id);
+      await logAuditAction(adminId, 'ADMIN_CANCELLED_QUEUE', 'QueueEntry', id);
+      res.json(updated);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
+

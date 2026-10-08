@@ -3,11 +3,29 @@
 // STORES DATA IN: backend/.pglite-data/
 
 import net from 'net';
+import fs from 'fs';
+import path from 'path';
 import { Readable, Writable } from 'stream';
 import { PGlite } from '@electric-sql/pglite';
 import { PostgresConnection } from 'pg-gateway';
 
-const dbDataDir = './.pglite-data';
+const dbDataDir = path.resolve(process.cwd(), '.pglite-data');
+
+// Ensure data directory exists
+if (!fs.existsSync(dbDataDir)) {
+  fs.mkdirSync(dbDataDir, { recursive: true });
+}
+
+// Clean up stale lock/pid file if previous process was forcefully terminated
+const stalePidFile = path.join(dbDataDir, 'postmaster.pid');
+if (fs.existsSync(stalePidFile)) {
+  try {
+    fs.unlinkSync(stalePidFile);
+  } catch {
+    // Ignore cleanup errors
+  }
+}
+
 const db = new PGlite(dbDataDir);
 
 const server = net.createServer((socket) => {
@@ -29,13 +47,21 @@ const server = net.createServer((socket) => {
             rows: res.rows ? res.rows.map((r: any) => Object.values(r)) : [],
             columns: res.fields ? res.fields.map((f: any) => ({ name: f.name, type: f.dataTypeID })) : [],
           };
-        } catch (err: any) {
+        } catch {
           return { rows: [], columns: [] };
         }
       },
     } as any);
-  } catch (err) {
+  } catch {
     // Ignore teardowns
+  }
+});
+
+server.on('error', (err: any) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log('⚡ PostgreSQL instance is already running on port 5432 (shared instance in use).');
+  } else {
+    console.error('PostgreSQL server error:', err.message || err);
   }
 });
 
