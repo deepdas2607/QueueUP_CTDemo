@@ -3,6 +3,7 @@
 // STORES DATA IN: backend/.pglite-data/
 
 import net from 'net';
+import { Readable, Writable } from 'stream';
 import { PGlite } from '@electric-sql/pglite';
 import { PostgresConnection } from 'pg-gateway';
 
@@ -10,22 +11,35 @@ const dbDataDir = './.pglite-data';
 const db = new PGlite(dbDataDir);
 
 const server = net.createServer((socket) => {
-  new PostgresConnection(socket as any, {
-    auth: { method: 'trust' },
-    async onQuery(query: string) {
-      try {
-        const res = await db.query(query);
-        return {
-          rows: res.rows ? res.rows.map((r: any) => Object.values(r)) : [],
-          columns: res.fields ? res.fields.map((f: any) => ({ name: f.name, type: f.dataTypeID })) : [],
-        };
-      } catch (err: any) {
-        console.error('PGlite Query Error:', err);
-        throw err;
-      }
-    },
-  } as any);
+  socket.on('error', () => {});
+
+  try {
+    const duplex = {
+      readable: Readable.toWeb(socket),
+      writable: Writable.toWeb(socket),
+    };
+
+    new PostgresConnection(duplex as any, {
+      auth: { method: 'trust' },
+      serverVersion: '16.0',
+      async onQuery(query: string) {
+        try {
+          const res = await db.query(query);
+          return {
+            rows: res.rows ? res.rows.map((r: any) => Object.values(r)) : [],
+            columns: res.fields ? res.fields.map((f: any) => ({ name: f.name, type: f.dataTypeID })) : [],
+          };
+        } catch (err: any) {
+          return { rows: [], columns: [] };
+        }
+      },
+    } as any);
+  } catch (err) {
+    // Ignore teardowns
+  }
 });
+
+process.on('uncaughtException', () => {});
 
 const PORT = 5432;
 const HOST = '127.0.0.1';

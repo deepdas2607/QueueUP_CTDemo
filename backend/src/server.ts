@@ -1,3 +1,4 @@
+import './dbLocal';
 import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
@@ -19,7 +20,7 @@ app.use(express.json());
 
 // Health Check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'QueueUp Backend', timestamp: new Date() });
+  res.json({ status: 'ok', service: 'QueueUp Backend (PostgreSQL)', timestamp: new Date() });
 });
 
 // Routes
@@ -81,11 +82,11 @@ const seedServices = async () => {
       console.log('Services seeded successfully.');
     }
   } catch (error) {
-    console.error('Error seeding services:', error);
+    console.error('Service Seeding Status:', (error as Error).message || error);
   }
 };
 
 app.listen(config.port, '0.0.0.0', async () => {
-  console.log(`QueueUp Backend running on port ${config.port}`);
+  console.log(`QueueUp Express REST API running on port ${config.port}`);
   await seedServices();
 });
