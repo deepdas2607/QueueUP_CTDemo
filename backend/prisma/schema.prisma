@@ -1,0 +1,58 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String       @id @default(uuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  occupation   String?
+  interests    String?
+  role         String       @default("USER")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  lastActiveAt DateTime     @default(now())
+  queueEntries QueueEntry[]
+  auditLogs    AuditLog[]
+}
+
+model Service {
+  id                  String       @id @default(uuid())
+  name                String
+  description         String
+  averageServiceTime  Int          // Average time per person in minutes
+  currentWaitingCount Int          @default(0)
+  isOpen              Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  queueEntries        QueueEntry[]
+}
+
+model QueueEntry {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceId   String
+  service     Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  position    Int
+  status      String    @default("WAITING")
+  joinedAt    DateTime  @default(now())
+  servedAt    DateTime?
+  cancelledAt DateTime?
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  entity    String
+  entityId  String
+  createdAt DateTime @default(now())
+}
