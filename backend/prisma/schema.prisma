@@ -1,10 +1,21 @@
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum QueueStatus {
+  WAITING
+  SERVED
+  CANCELLED
 }
 
 model User {
@@ -14,7 +25,7 @@ model User {
   passwordHash String
   occupation   String?
   interests    String?
-  role         String       @default("USER")
+  role         Role         @default(USER)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   lastActiveAt DateTime     @default(now())
@@ -35,14 +46,14 @@ model Service {
 }
 
 model QueueEntry {
-  id          String    @id @default(uuid())
+  id          String      @id @default(uuid())
   userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   serviceId   String
-  service     Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  service     Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   position    Int
-  status      String    @default("WAITING")
-  joinedAt    DateTime  @default(now())
+  status      QueueStatus @default(WAITING)
+  joinedAt    DateTime    @default(now())
   servedAt    DateTime?
   cancelledAt DateTime?
 }

@@ -1,5 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-import { QueueStatus } from '../types';
+import { PrismaClient, QueueStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 

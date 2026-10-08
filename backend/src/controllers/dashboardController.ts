@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { AuthenticatedRequest, QueueStatus } from '../types';
+import { PrismaClient, QueueStatus } from '@prisma/client';
+import { AuthenticatedRequest } from '../types';
 
 const prisma = new PrismaClient();
 

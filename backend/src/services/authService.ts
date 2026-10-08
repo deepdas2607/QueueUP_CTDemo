@@ -1,8 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/env';
-import { Role } from '../types';
 
 const prisma = new PrismaClient();
 
@@ -33,11 +32,12 @@ export class AuthService {
         passwordHash,
         occupation: data.occupation || null,
         interests: data.interests || null,
+        role: Role.USER,
       },
     });
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role as Role },
+      { userId: user.id, email: user.email, role: user.role },
       config.jwtSecret,
       { expiresIn: '30d' }
     );
@@ -68,7 +68,7 @@ export class AuthService {
     });
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role as Role },
+      { userId: user.id, email: user.email, role: user.role },
       config.jwtSecret,
       { expiresIn: '30d' }
     );

@@ -1,17 +1,7 @@
 import { Request } from 'express';
+import { Role, QueueStatus } from '@prisma/client';
 
-export type Role = 'USER' | 'ADMIN';
-export const Role = {
-  USER: 'USER' as const,
-  ADMIN: 'ADMIN' as const,
-};
-
-export type QueueStatus = 'WAITING' | 'SERVED' | 'CANCELLED';
-export const QueueStatus = {
-  WAITING: 'WAITING' as const,
-  SERVED: 'SERVED' as const,
-  CANCELLED: 'CANCELLED' as const,
-};
+export { Role, QueueStatus };
 
 export interface JwtPayload {
   userId: string;
