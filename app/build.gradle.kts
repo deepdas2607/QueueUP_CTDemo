@@ -56,8 +56,8 @@ dependencies {
     implementation(libs.okhttp.core)
     implementation(libs.okhttp.logging)
 
-    // CleverTap SDK (For standalone clevertap package)
-    implementation(libs.clevertap.sdk)
+    // CleverTap SDK (Separated into queueup_int integration module; uncomment upon P1 reconnection)
+    // implementation(libs.clevertap.sdk)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

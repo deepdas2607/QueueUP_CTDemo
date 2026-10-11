@@ -16,25 +16,43 @@ import com.example.queueup.data.repository.AuthRepository
 import com.example.queueup.data.repository.ProfileRepository
 import kotlinx.coroutines.launch
 
+/**
+ * ProfileViewModel manages user profile information, queuing statistics, and student preferences.
+ *
+ * It powers the ProfileScreen where students can:
+ * - View their personal details (Name, Email, Role, Occupation).
+ * - Inspect queuing statistics (Total Queues Joined, Total Wait Time, Active Tickets).
+ * - Edit their display name and academic interests.
+ * - Manage device push notification preferences and data privacy consent settings.
+ * - Log out securely.
+ */
 class ProfileViewModel(
     private val profileRepository: ProfileRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
+    // User model and queue statistics
     var user by mutableStateOf<User?>(null)
     var userStats by mutableStateOf<UserStats?>(null)
 
+    // Device notification and privacy preferences
     var notificationsEnabled by mutableStateOf(true)
     var privacyConsentGiven by mutableStateOf(true)
 
+    // Editable form fields
     var editName by mutableStateOf("")
     var editOccupation by mutableStateOf("")
     var editInterests by mutableStateOf("")
 
+    // UI feedback state
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     var successMessage by mutableStateOf<String?>(null)
 
+    /**
+     * Loads student profile and historical statistics from the backend REST API.
+     * Also reads locally persisted notification and privacy preferences from SharedPreferences.
+     */
     fun loadProfile() {
         viewModelScope.launch {
             isLoading = true
@@ -57,6 +75,9 @@ class ProfileViewModel(
         }
     }
 
+    /**
+     * Sends updated name, occupation, or interests to the PostgreSQL database via REST API.
+     */
     fun updateProfileInfo() {
         viewModelScope.launch {
             isLoading = true
@@ -76,16 +97,25 @@ class ProfileViewModel(
         }
     }
 
+    /**
+     * Toggles whether the student wants to receive system notifications.
+     */
     fun toggleNotifications(enabled: Boolean) {
         notificationsEnabled = enabled
         profileRepository.setNotificationsEnabled(enabled)
     }
 
+    /**
+     * Toggles student privacy consent for analytical logging.
+     */
     fun togglePrivacyConsent(given: Boolean) {
         privacyConsentGiven = given
         profileRepository.setPrivacyConsentGiven(given)
     }
 
+    /**
+     * Logs the student out and clears in-memory state.
+     */
     fun logout(onLogoutDone: () -> Unit) {
         authRepository.logout()
         user = null
@@ -93,6 +123,9 @@ class ProfileViewModel(
         onLogoutDone()
     }
 
+    /**
+     * Resets banner messages.
+     */
     fun clearMessages() {
         errorMessage = null
         successMessage = null

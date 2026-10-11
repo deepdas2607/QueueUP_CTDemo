@@ -12,8 +12,24 @@ import com.example.queueup.data.model.User
 import com.example.queueup.data.remote.ApiClient
 import com.example.queueup.utils.SessionManager
 
+/**
+ * AuthRepository coordinates user authentication, token storage, and session lifecycle.
+ *
+ * Responsibilities:
+ * 1. Submits login/registration HTTP requests to Express backend.
+ * 2. Saves the returned JWT authentication token to SharedPreferences via SessionManager.
+ * 3. Persists user profile information so HomeScreen and ProfileScreen have instant access.
+ */
 class AuthRepository(private val sessionManager: SessionManager) {
 
+    /**
+     * Registers a new student account in the backend database.
+     * @param name Full name of the student.
+     * @param email Campus email address.
+     * @param password Raw password (will be hashed with bcrypt on backend).
+     * @param occupation Optional field (e.g. "Computer Science Undergraduate").
+     * @param interests Optional field (e.g. "Robotics, AI, Gaming").
+     */
     suspend fun register(
         name: String,
         email: String,
@@ -27,6 +43,7 @@ class AuthRepository(private val sessionManager: SessionManager) {
             )
             if (response.isSuccessful && response.body() != null) {
                 val authData = response.body()!!
+                // Persist authentication state locally so the user remains logged in across app restarts
                 sessionManager.saveAuthToken(authData.token)
                 sessionManager.saveUser(
                     id = authData.user.id,

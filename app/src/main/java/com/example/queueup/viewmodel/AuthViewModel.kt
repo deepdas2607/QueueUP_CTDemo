@@ -14,27 +14,45 @@ import com.example.queueup.data.model.User
 import com.example.queueup.data.repository.AuthRepository
 import kotlinx.coroutines.launch
 
+/**
+ * AuthViewModel manages user onboarding, input validation, authentication calls, and logout cleanup.
+ *
+ * It holds two-way binding form states for both LoginScreen and RegisterScreen:
+ * - Login fields: `loginEmail`, `loginPassword`
+ * - Register fields: `registerName`, `registerEmail`, `registerPassword`, `registerOccupation`, `registerInterests`
+ */
 class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
+    // Login Form State
     var loginEmail by mutableStateOf("")
     var loginPassword by mutableStateOf("")
 
+    // Registration Form State
     var registerName by mutableStateOf("")
     var registerEmail by mutableStateOf("")
     var registerPassword by mutableStateOf("")
     var registerOccupation by mutableStateOf("")
     var registerInterests by mutableStateOf("")
 
+    // UI Feedback State
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     var authSuccessUser by mutableStateOf<User?>(null)
 
+    /**
+     * Checks if a valid JWT token already exists in SharedPreferences.
+     * Called by SplashScreen to decide whether to route to HomeScreen or LoginScreen.
+     */
     fun isLoggedIn(): Boolean = authRepository.isLoggedIn()
 
+    /**
+     * Validates user credentials and executes the login network request.
+     * @param onSuccess Callback lambda triggered upon 200 OK response, routing user to HomeScreen.
+     */
     fun login(onSuccess: () -> Unit) {
         if (loginEmail.isBlank() || loginPassword.isBlank()) {
             errorMessage = "Please fill in email and password"
-            return;
+            return
         }
 
         viewModelScope.launch {
@@ -51,6 +69,10 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
         }
     }
 
+    /**
+     * Validates new user input and sends registration payload to the Express backend.
+     * @param onSuccess Callback lambda invoked on success to route user to HomeScreen.
+     */
     fun register(onSuccess: () -> Unit) {
         if (registerName.isBlank() || registerEmail.isBlank() || registerPassword.isBlank()) {
             errorMessage = "Name, email, and password are required"
@@ -77,10 +99,17 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
         }
     }
 
+    /**
+     * Clears error banner when user begins typing or dismisses the dialog.
+     */
     fun clearError() {
         errorMessage = null
     }
 
+    /**
+     * Clears saved authentication credentials and resets form fields to protect student privacy.
+     * @param onLogoutDone Callback lambda navigating back to LoginScreen and clearing backstack.
+     */
     fun logout(onLogoutDone: () -> Unit) {
         authRepository.logout()
         authSuccessUser = null

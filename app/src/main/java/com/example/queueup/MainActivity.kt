@@ -38,17 +38,37 @@ import com.example.queueup.viewmodel.HomeViewModel
 import com.example.queueup.viewmodel.ProfileViewModel
 import com.example.queueup.viewmodel.QueueViewModel
 
+/**
+ * MainActivity is the single Activity hosting the entire Jetpack Compose application.
+ *
+ * In modern Android development with Jetpack Compose, apps usually follow the "Single Activity" pattern.
+ * Instead of creating a separate Activity for each screen (which consumes more memory and lifecycle complexity),
+ * we have one MainActivity that hosts a NavHost (navigation container) swapping Composable screens.
+ */
 class MainActivity : ComponentActivity() {
+
+    /**
+     * onCreate() is the very first Android lifecycle method called when the system creates this Activity.
+     * @param savedInstanceState: If the app was killed in the background, this bundle holds previously saved state.
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // enableEdgeToEdge() draws the UI behind the system status bar and navigation bar for a modern full-screen feel.
         enableEdgeToEdge()
 
+        // Initialize SessionManager with the Android Application Context to read/write SharedPreferences safely.
         val sessionManager = SessionManager(applicationContext)
+
+        // Provide sessionManager to ApiClient so Retrofit can attach JWT tokens to every outgoing HTTP request.
         ApiClient.init(sessionManager)
 
+        // setContent is Compose's entry point, replacing the traditional XML layout setContentView(R.layout.activity_main).
         setContent {
+            // remember { mutableStateOf(...) } creates an observable state variable that triggers UI recomposition on change.
             var isDarkMode by remember { mutableStateOf(sessionManager.isDarkModeEnabled()) }
 
+            // QueueUpTheme provides dynamic colors, shapes, and typography to all nested composables.
             QueueUpTheme(darkTheme = isDarkMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -58,6 +78,7 @@ class MainActivity : ComponentActivity() {
                         sessionManager = sessionManager,
                         isDarkMode = isDarkMode,
                         onToggleDarkMode = { enabled ->
+                            // Persist user preference to local storage and update Compose state
                             sessionManager.setDarkModeEnabled(enabled)
                             isDarkMode = enabled
                         }
@@ -68,27 +89,43 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * QueueUpApp is the master Composable setting up Dependency Injection and Navigation routes.
+ *
+ * @param sessionManager Encapsulates encrypted SharedPreferences for student authentication tokens.
+ * @param isDarkMode Boolean flag controlling light/dark Material 3 color schemes.
+ * @param onToggleDarkMode Callback lambda invoked when the user flips the dark mode switch in ProfileScreen.
+ */
 @Composable
 fun QueueUpApp(
     sessionManager: SessionManager,
     isDarkMode: Boolean = false,
     onToggleDarkMode: (Boolean) -> Unit = {}
 ) {
+    // LocalContext.current retrieves the Android Context required by system services like NotificationManager.
     val context = LocalContext.current
+
+    // rememberNavController creates and retains the NavHostController across screen recompositions.
     val navController = rememberNavController()
 
-    // Dependency Wiring (Manual DI to keep architecture simple)
+    // ---------------------------------------------------------------------------------------------
+    // Dependency Wiring (Manual Dependency Injection):
+    // In small-to-medium apps, Manual DI using `remember { ... }` avoids heavy boilerplate like Dagger/Hilt,
+    // keeping class instantiations transparent, predictable, and easy for beginners to trace.
+    // ---------------------------------------------------------------------------------------------
     val notificationService = remember { NotificationService(context) }
     val authRepository = remember { AuthRepository(sessionManager) }
     val serviceRepository = remember { ServiceRepository() }
     val queueRepository = remember { QueueRepository() }
     val profileRepository = remember { ProfileRepository(sessionManager) }
 
+    // ViewModels survive screen rotation and encapsulate UI state away from Composable view functions.
     val authViewModel = remember { AuthViewModel(authRepository) }
     val homeViewModel = remember { HomeViewModel(serviceRepository, queueRepository, profileRepository) }
     val queueViewModel = remember { QueueViewModel(serviceRepository, queueRepository, notificationService) }
     val profileViewModel = remember { ProfileViewModel(profileRepository, authRepository) }
 
+    // NavHost coordinates screen destinations and backstack history.
     NavHost(
         navController = navController,
         startDestination = "splash"
