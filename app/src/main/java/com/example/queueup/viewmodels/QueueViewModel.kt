@@ -13,6 +13,9 @@ import com.example.queueup.models.QueueEntry
 import com.example.queueup.models.Service
 import com.example.queueup.network.ApiClient
 import com.example.queueup.network.NotificationHelper
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -35,6 +38,9 @@ class QueueViewModel(
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
+    // Background job for the automatic 30-second queue position advancement ticker.
+    private var autoUpdateJob: Job? = null
+
     // Loads all 12 campus counters, the user's active queue ticket, and campus tips for HomeScreen.
     fun loadHomeDashboardData() {
         viewModelScope.launch {
@@ -49,6 +55,9 @@ class QueueViewModel(
                 val activeRes = ApiClient.apiService.getActiveQueue()
                 if (activeRes.isSuccessful) {
                     activeQueueData = activeRes.body()?.activeQueue
+                    if (activeQueueData != null && activeQueueData!!.queueEntry.position > 1) {
+                        startAutoQueuePositionPolling()
+                    }
                 }
 
                 val tipsRes = ApiClient.apiService.getCampusTips()
@@ -129,6 +138,7 @@ class QueueViewModel(
                         )
                     )
                     isLoading = false
+                    startAutoQueuePositionPolling()
                     onJoinedSuccess()
                 } else {
                     isLoading = false
@@ -141,6 +151,28 @@ class QueueViewModel(
         }
     }
 
+    // Starts an automatic 30-second timer to advance the queue line and notify the student.
+    fun startAutoQueuePositionPolling() {
+        if (autoUpdateJob?.isActive == true) return
+        autoUpdateJob = viewModelScope.launch {
+            while (isActive) {
+                delay(30_000L) // Wait 30 seconds between automatic queue movements
+                val currentTicket = activeQueueData
+                if (currentTicket != null && currentTicket.queueEntry.position > 1) {
+                    refreshAndAdvanceQueueTurn()
+                } else if (currentTicket == null) {
+                    break
+                }
+            }
+        }
+    }
+
+    // Cancels the 30-second automatic queue timer when leaving line or checking in.
+    fun stopAutoQueuePositionPolling() {
+        autoUpdateJob?.cancel()
+        autoUpdateJob = null
+    }
+
     // Fetches the user's current active queue ticket from GET /api/queues/my-active.
     fun fetchActiveQueueStatus() {
         viewModelScope.launch {
@@ -150,6 +182,9 @@ class QueueViewModel(
                 val response = ApiClient.apiService.getActiveQueue()
                 if (response.isSuccessful) {
                     activeQueueData = response.body()?.activeQueue
+                    if (activeQueueData != null && activeQueueData!!.queueEntry.position > 1) {
+                        startAutoQueuePositionPolling()
+                    }
                 }
             } catch (e: Exception) {
                 errorMessage = "Failed to fetch active queue status"
@@ -158,7 +193,7 @@ class QueueViewModel(
         }
     }
 
-    // Advances the simulated line by 1 turn when the user taps Refresh so they can test reaching #1.
+    // Advances the simulated line by 1 turn when the user taps Refresh or when the 30s timer fires.
     fun refreshAndAdvanceQueueTurn() {
         val currentTicketId = activeQueueData?.queueEntry?.id ?: return
         val previousPosition = activeQueueData?.queueEntry?.position ?: 1
@@ -175,6 +210,7 @@ class QueueViewModel(
                     if (updated != null) {
                         val newPos = updated.queueEntry.position
                         if (newPos == 1 && updated.peopleAhead == 0) {
+                            stopAutoQueuePositionPolling()
                             notificationHelper.showNotification(
                                 title = "It's Your Turn! (#1)",
                                 message = "Please proceed to ${updated.queueEntry.service.name}"
@@ -190,6 +226,12 @@ class QueueViewModel(
                                 )
                             )
                         } else {
+                            if (newPos < previousPosition) {
+                                notificationHelper.showNotification(
+                                    title = "Queue Position Update (#$newPos)",
+                                    message = "You are now #$newPos (${updated.peopleAhead} ahead) at ${updated.queueEntry.service.name}"
+                                )
+                            }
                             inspectorViewModel.logEvent(
                                 eventName = "Queue_Position_Updated",
                                 summary = "Moved from #$previousPosition to #$newPos at ${updated.queueEntry.service.name}",
@@ -219,6 +261,7 @@ class QueueViewModel(
 
     // Completes the active queue ticket when the user finishes their turn at the counter.
     fun completeActiveQueue(onCompleted: () -> Unit = {}) {
+        stopAutoQueuePositionPolling()
         val currentData = activeQueueData ?: return
         val ticketId = currentData.queueEntry.id
         val serviceName = currentData.queueEntry.service.name
@@ -255,6 +298,7 @@ class QueueViewModel(
 
     // Cancels and leaves the active queue ticket when the user taps Leave Queue.
     fun leaveActiveQueue(onLeftQueue: () -> Unit = {}) {
+        stopAutoQueuePositionPolling()
         val currentData = activeQueueData ?: return
         val ticketId = currentData.queueEntry.id
         val serviceName = currentData.queueEntry.service.name
@@ -306,6 +350,12 @@ class QueueViewModel(
             }
             isLoading = false
         }
+    }
+
+    // Cancels any running background ticker job when the ViewModel is destroyed.
+    override fun onCleared() {
+        super.onCleared()
+        stopAutoQueuePositionPolling()
     }
 
     // Parses the error message string from a backend error JSON body.

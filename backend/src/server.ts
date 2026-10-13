@@ -3,7 +3,7 @@
 
 import express from 'express';
 import cors from 'cors';
-import { initializeDatabase } from './database/postgresDatabase';
+import { initializeDatabase, startBackgroundQueueTicker } from './database/postgresDatabase';
 import apiRoutes from './routes/apiRoutes';
 
 const app = express();
@@ -34,10 +34,12 @@ app.get('/health', (_req, res) => {
 // Mount all API endpoints under /api.
 app.use('/api', apiRoutes);
 
-// Initializes PostgreSQL tables and starts listening for requests on port 3000.
+// Initializes PostgreSQL tables, starts the 30-second simulation ticker, and starts listening on port 3000.
 async function startBackendServer() {
   try {
     await initializeDatabase();
+    // Start background 30-second ticker to simulate natural campus line flow
+    startBackgroundQueueTicker(30000);
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 QueueUp Express API listening on http://127.0.0.1:${PORT}`);
     });

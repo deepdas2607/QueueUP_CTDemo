@@ -479,6 +479,55 @@ export async function advanceQueueForUser(userId: string): Promise<void> {
   }
 }
 
+// Holds the background interval timer that simulates natural 30-second campus queue flow.
+let tickerInterval: NodeJS.Timeout | null = null;
+
+// Starts the 30-second background ticker to naturally advance waiting queues across campus.
+export function startBackgroundQueueTicker(intervalMs: number = 30000): void {
+  if (tickerInterval) return;
+
+  tickerInterval = setInterval(async () => {
+    try {
+      // Find all campus services that have waiting students
+      const waitingServices = await db.query<{ service_id: string }>(
+        `SELECT DISTINCT service_id FROM queue_entries WHERE status = 'WAITING'`
+      );
+
+      for (const service of waitingServices.rows) {
+        // Find simulated student waiting at the head of the line (email ending with @campus.sim)
+        const simRes = await db.query<{ id: string }>(
+          `SELECT q.id FROM queue_entries q
+           JOIN users u ON q.user_id = u.id
+           WHERE q.service_id = $1 AND q.status = 'WAITING' AND u.email LIKE '%@campus.sim'
+           ORDER BY q.position ASC, q.joined_at ASC
+           LIMIT 1`,
+          [service.service_id]
+        );
+
+        if (simRes.rows[0]) {
+          await db.query(
+            `UPDATE queue_entries SET status = 'SERVED', served_at = CURRENT_TIMESTAMP WHERE id = $1`,
+            [simRes.rows[0].id]
+          );
+          await recalculateServiceWaitingCount(service.service_id);
+        }
+      }
+    } catch (_) {
+      // Non-blocking ticker catch
+    }
+  }, intervalMs);
+
+  console.log(`⏱️ 30-second background queue advancement ticker active.`);
+}
+
+// Stops the 30-second background ticker if the server is stopped.
+export function stopBackgroundQueueTicker(): void {
+  if (tickerInterval) {
+    clearInterval(tickerInterval);
+    tickerInterval = null;
+  }
+}
+
 // Marks the user's active queue ticket as SERVED (completed at the counter).
 export async function completeQueueForUser(userId: string, queueId: string) {
   const res = await db.query<any>(
