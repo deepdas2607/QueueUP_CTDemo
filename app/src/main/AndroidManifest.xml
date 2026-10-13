@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
+        android:name=".QueueUpApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -17,6 +18,30 @@
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.QueueUp">
+
+        <!-- CleverTap Project Credentials & Configuration -->
+        <meta-data
+            android:name="CLEVERTAP_ACCOUNT_ID"
+            android:value="TEST-CLEVERTAP-ACCOUNT-ID" />
+        <meta-data
+            android:name="CLEVERTAP_TOKEN"
+            android:value="TEST-CLEVERTAP-TOKEN" />
+        <meta-data
+            android:name="CLEVERTAP_REGION"
+            android:value="in1" />
+        <meta-data
+            android:name="CLEVERTAP_IDENTIFIER"
+            android:value="Identity,Email,Phone" />
+        <meta-data
+            android:name="CLEVERTAP_USE_GOOGLE_AD_ID"
+            android:value="0" />
+
+        <!-- R8 / ProGuard safeguard for legacy background job service -->
+        <service
+            android:name="com.clevertap.android.sdk.pushnotification.amp.CTBackgroundJobService"
+            android:exported="false"
+            android:enabled="false"
+            tools:ignore="MissingClass" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

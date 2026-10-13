@@ -212,6 +212,30 @@ fun ActivityInspectorScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Trigger Test Event")
                             }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { inspectorViewModel.triggerTestChargedPurchaseEvent() },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Test Charged", fontSize = 12.sp)
+                                }
+                                OutlinedButton(
+                                    onClick = { inspectorViewModel.triggerIncrementQueuesJoined() },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.TrendingUp, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Increment (+1)", fontSize = 12.sp)
+                                }
+                            }
                         }
                     }
                 }

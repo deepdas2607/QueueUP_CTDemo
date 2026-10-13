@@ -7,6 +7,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.queueup.clevertap.CleverTapConsent
+import com.example.queueup.clevertap.CleverTapIdentity
+import com.example.queueup.clevertap.CleverTapProfile
+import com.example.queueup.clevertap.CleverTapUserProfile
 import com.example.queueup.models.UpdateProfileRequest
 import com.example.queueup.models.User
 import com.example.queueup.models.UserQueueStats
@@ -96,6 +100,23 @@ class ProfileViewModel(
                     )
                     statusMessage = "Profile updated and synced!"
 
+                    // Push enriched profile attributes to CleverTap SDK per documentation
+                    CleverTapProfile.pushProfile(
+                        CleverTapUserProfile(
+                            userId = updated.id,
+                            name = updated.name,
+                            email = updated.email,
+                            phone = updated.phone,
+                            occupation = updated.occupation ?: "Student",
+                            interests = listOf(updated.interests ?: "Campus Life"),
+                            totalQueuesJoined = userStats?.totalJoined ?: 0,
+                            completedQueues = userStats?.completed ?: 0,
+                            averageWaitMinutes = 0,
+                            notificationsEnabled = notificationsEnabled,
+                            analyticsConsent = privacyConsentGiven
+                        )
+                    )
+
                     inspectorViewModel.logProfileUpdate(
                         actionName = "pushProfile",
                         summary = "Updated profile attributes for ${updated.name}",
@@ -123,6 +144,11 @@ class ProfileViewModel(
     fun togglePushNotifications(enabled: Boolean) {
         notificationsEnabled = enabled
         sessionManager.setNotificationsEnabled(enabled)
+        // Sync communication flag with CleverTap
+        CleverTapProfile.updateCommunicationPreferences(
+            pushEnabled = enabled,
+            emailEnabled = true
+        )
         inspectorViewModel.logProfileUpdate(
             actionName = "pushProfile (MSG-push)",
             summary = if (enabled) "Subscribed to push notifications" else "Muted push notifications",
@@ -134,6 +160,8 @@ class ProfileViewModel(
     fun togglePrivacyConsent(given: Boolean) {
         privacyConsentGiven = given
         sessionManager.setPrivacyConsentGiven(given)
+        // Sync optOut status with CleverTap SDK
+        CleverTapConsent.updateConsent(analyticsConsent = given)
         inspectorViewModel.logProfileUpdate(
             actionName = "setOptOut / Privacy Consent",
             summary = if (given) "Analytics tracking enabled (Opt-In)" else "Analytics tracking paused (Opt-Out)",
@@ -147,6 +175,8 @@ class ProfileViewModel(
     // Logs out the user, clears saved tokens, and navigates back to LoginScreen.
     fun logoutUser(onLogoutDone: () -> Unit) {
         val currentDark = sessionManager.isDarkModeEnabled()
+        // Record logout event on CleverTap
+        CleverTapIdentity.onUserLogout()
         inspectorViewModel.logSystemEvent(
             actionName = "User_Logged_Out",
             summary = "Session cleared for ${user?.email ?: "user"}",

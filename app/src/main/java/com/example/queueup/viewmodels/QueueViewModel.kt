@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.queueup.clevertap.QueueCleverTapBridge
 import com.example.queueup.models.ActiveQueueData
 import com.example.queueup.models.JoinQueueRequest
 import com.example.queueup.models.QueueEntry
@@ -87,6 +88,14 @@ class QueueViewModel(
                 if (response.isSuccessful && response.body() != null) {
                     val service = response.body()!!
                     selectedService = service
+
+                    // Dispatch CleverTap Service Viewed event per catalog schema
+                    QueueCleverTapBridge.onServiceViewed(
+                        serviceName = service.name,
+                        serviceId = service.id,
+                        waitingCount = service.currentWaitingCount
+                    )
+
                     inspectorViewModel.logEvent(
                         eventName = "Service_Viewed",
                         summary = "Viewed counter: ${service.name}",
@@ -100,9 +109,11 @@ class QueueViewModel(
                     )
                 } else {
                     errorMessage = "Could not load service details"
+                    QueueCleverTapBridge.onError("Could not load service details", 404)
                 }
             } catch (e: Exception) {
                 errorMessage = "Network error while loading service details"
+                QueueCleverTapBridge.onError("Network error while loading service details", 500)
             }
             isLoading = false
         }
@@ -118,6 +129,14 @@ class QueueViewModel(
                 if (response.isSuccessful && response.body() != null) {
                     val joinedData = response.body()!!
                     activeQueueData = joinedData
+
+                    // Bridge event and profile increment to CleverTap SDK per documentation
+                    QueueCleverTapBridge.onQueueJoined(
+                        serviceId = joinedData.queueEntry.serviceId,
+                        serviceName = joinedData.queueEntry.service.name,
+                        initialPosition = joinedData.queueEntry.position,
+                        estimatedWaitMinutes = joinedData.estimatedWaitMinutes
+                    )
 
                     notificationHelper.showNotification(
                         title = "Joined Queue: ${joinedData.queueEntry.service.name}",
@@ -142,11 +161,15 @@ class QueueViewModel(
                     onJoinedSuccess()
                 } else {
                     isLoading = false
-                    errorMessage = parseError(response.errorBody()?.string(), "Failed to join queue")
+                    val errorMsg = parseError(response.errorBody()?.string(), "Failed to join queue")
+                    errorMessage = errorMsg
+                    QueueCleverTapBridge.onError(errorMsg, 400)
                 }
             } catch (e: Exception) {
                 isLoading = false
-                errorMessage = "Network error while joining queue"
+                val errorMsg = "Network error while joining queue"
+                errorMessage = errorMsg
+                QueueCleverTapBridge.onError(errorMsg, 500)
             }
         }
     }
@@ -209,6 +232,17 @@ class QueueViewModel(
 
                     if (updated != null) {
                         val newPos = updated.queueEntry.position
+
+                        // Dispatch CleverTap position update and turn ready event per documentation
+                        QueueCleverTapBridge.onQueuePositionUpdated(
+                            serviceId = updated.queueEntry.serviceId,
+                            serviceName = updated.queueEntry.service.name,
+                            previousPosition = previousPosition,
+                            newPosition = newPos,
+                            peopleAhead = updated.peopleAhead,
+                            estimatedWaitMinutes = updated.estimatedWaitMinutes
+                        )
+
                         if (newPos == 1 && updated.peopleAhead == 0) {
                             stopAutoQueuePositionPolling()
                             notificationHelper.showNotification(
@@ -254,6 +288,7 @@ class QueueViewModel(
                 }
             } catch (e: Exception) {
                 errorMessage = "Failed to refresh queue status"
+                QueueCleverTapBridge.onError("Failed to refresh queue status", 500)
             }
             isLoading = false
         }
@@ -273,6 +308,13 @@ class QueueViewModel(
                 val response = ApiClient.apiService.completeQueue(ticketId)
                 if (response.isSuccessful) {
                     activeQueueData = null
+
+                    // Dispatch CleverTap Queue Served event and increment completed count on profile
+                    QueueCleverTapBridge.onQueueServed(
+                        serviceId = currentData.queueEntry.serviceId,
+                        serviceName = serviceName
+                    )
+
                     notificationHelper.showNotification(
                         title = "Service Completed",
                         message = "Checked out from $serviceName"
@@ -291,6 +333,7 @@ class QueueViewModel(
                 }
             } catch (e: Exception) {
                 errorMessage = "Failed to complete service"
+                QueueCleverTapBridge.onError("Failed to complete service", 500)
             }
             isLoading = false
         }
@@ -311,6 +354,13 @@ class QueueViewModel(
                 val response = ApiClient.apiService.leaveQueue(ticketId)
                 if (response.isSuccessful) {
                     activeQueueData = null
+
+                    // Dispatch CleverTap Queue Left event per documentation
+                    QueueCleverTapBridge.onQueueLeft(
+                        serviceName = serviceName,
+                        queuePosition = positionWhenLeft
+                    )
+
                     notificationHelper.showNotification(
                         title = "Left Queue",
                         message = "You left the line for $serviceName"
@@ -330,6 +380,7 @@ class QueueViewModel(
                 }
             } catch (e: Exception) {
                 errorMessage = "Failed to leave queue"
+                QueueCleverTapBridge.onError("Failed to leave queue", 500)
             }
             isLoading = false
         }

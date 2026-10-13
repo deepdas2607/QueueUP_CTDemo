@@ -12,11 +12,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.queueup.clevertap.QueueCleverTapBridge
 import com.example.queueup.network.ApiClient
 import com.example.queueup.network.NotificationHelper
 import com.example.queueup.network.SessionManager
@@ -75,6 +77,35 @@ fun QueueUpNavigationApp(
     val authViewModel = remember { AuthViewModel(sessionManager, inspectorViewModel) }
     val queueViewModel = remember { QueueViewModel(notificationHelper, inspectorViewModel) }
     val profileViewModel = remember { ProfileViewModel(sessionManager, inspectorViewModel) }
+
+    // Restore CleverTap session if the user already has saved credentials on the device
+    LaunchedEffect(Unit) {
+        authViewModel.restoreSessionIfLoggedIn()
+    }
+
+    // Automatically records screen views in CleverTap SDK per documentation
+    DisposableEffect(navController) {
+        val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+            val route = destination.route ?: "Unknown"
+            val screenName = when {
+                route.startsWith("service_detail") -> "Service Detail"
+                route == "splash" -> "Splash"
+                route == "login" -> "Login"
+                route == "register" -> "Register"
+                route == "home" -> "Home"
+                route == "queue_status" -> "Queue Status"
+                route == "queue_history" -> "Queue History"
+                route == "profile" -> "Profile"
+                route == "activity_inspector" -> "Activity Inspector"
+                else -> route
+            }
+            QueueCleverTapBridge.onScreenViewed(screenName)
+        }
+        navController.addOnDestinationChangedListener(listener)
+        onDispose {
+            navController.removeOnDestinationChangedListener(listener)
+        }
+    }
 
     NavHost(
         navController = navController,

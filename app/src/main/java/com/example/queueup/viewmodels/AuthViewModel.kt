@@ -7,6 +7,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.queueup.clevertap.CleverTapEvents
+import com.example.queueup.clevertap.CleverTapIdentity
 import com.example.queueup.models.LoginRequest
 import com.example.queueup.models.RegisterRequest
 import com.example.queueup.models.User
@@ -59,6 +61,16 @@ class AuthViewModel(
                     val authData = response.body()!!
                     saveUserSession(authData.token, authData.user)
 
+                    // Identify user on CleverTap SDK per documentation
+                    CleverTapIdentity.onUserLogin(
+                        userId = authData.user.id,
+                        email = authData.user.email,
+                        name = authData.user.name,
+                        phone = authData.user.phone,
+                        occupation = authData.user.occupation,
+                        interests = authData.user.interests
+                    )
+
                     // Log identity login and event payload in the Live Activity Inspector.
                     inspectorViewModel.logIdentityLogin(
                         actionName = "onUserLogin",
@@ -85,11 +97,15 @@ class AuthViewModel(
                     onSuccess()
                 } else {
                     isLoading = false
-                    errorMessage = parseErrorMessage(response.errorBody()?.string(), "Invalid email or password")
+                    val errorMsg = parseErrorMessage(response.errorBody()?.string(), "Invalid email or password")
+                    errorMessage = errorMsg
+                    CleverTapEvents.recordError(errorMsg, 401)
                 }
             } catch (e: Exception) {
                 isLoading = false
-                errorMessage = "Cannot connect to server. Make sure backend is running on port 3000."
+                val errorMsg = "Cannot connect to server. Make sure backend is running on port 3000."
+                errorMessage = errorMsg
+                CleverTapEvents.recordError(errorMsg, 500)
             }
         }
     }
@@ -119,6 +135,16 @@ class AuthViewModel(
                     val authData = response.body()!!
                     saveUserSession(authData.token, authData.user)
 
+                    // Identify newly registered user on CleverTap SDK per documentation
+                    CleverTapIdentity.onUserLogin(
+                        userId = authData.user.id,
+                        email = authData.user.email,
+                        name = authData.user.name,
+                        phone = authData.user.phone,
+                        occupation = authData.user.occupation,
+                        interests = authData.user.interests
+                    )
+
                     inspectorViewModel.logIdentityLogin(
                         actionName = "onUserLogin (New Registration)",
                         summary = "Created profile for ${authData.user.name}",
@@ -144,12 +170,33 @@ class AuthViewModel(
                     onSuccess()
                 } else {
                     isLoading = false
-                    errorMessage = parseErrorMessage(response.errorBody()?.string(), "Registration failed")
+                    val errorMsg = parseErrorMessage(response.errorBody()?.string(), "Registration failed")
+                    errorMessage = errorMsg
+                    CleverTapEvents.recordError(errorMsg, 400)
                 }
             } catch (e: Exception) {
                 isLoading = false
-                errorMessage = "Cannot connect to server. Make sure backend is running on port 3000."
+                val errorMsg = "Cannot connect to server. Make sure backend is running on port 3000."
+                errorMessage = errorMsg
+                CleverTapEvents.recordError(errorMsg, 500)
             }
+        }
+    }
+
+    // Restores CleverTap session for already logged-in users on app launch.
+    fun restoreSessionIfLoggedIn() {
+        if (sessionManager.isLoggedIn()) {
+            val uid = sessionManager.getUserId() ?: return
+            val email = sessionManager.getUserEmail() ?: return
+            val name = sessionManager.getUserName() ?: "Student"
+            CleverTapIdentity.restoreSession(
+                userId = uid,
+                email = email,
+                name = name,
+                phone = sessionManager.getUserPhone(),
+                occupation = sessionManager.getUserOccupation(),
+                interests = sessionManager.getUserInterests()
+            )
         }
     }
 

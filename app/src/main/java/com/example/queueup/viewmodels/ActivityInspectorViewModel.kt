@@ -7,6 +7,8 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.example.queueup.clevertap.CleverTapEvents
+import com.example.queueup.clevertap.CleverTapProfile
 import com.example.queueup.models.ActivityLogCategory
 import com.example.queueup.models.ActivityLogEntry
 import com.example.queueup.models.CampusAnnouncement
@@ -106,6 +108,54 @@ class ActivityInspectorViewModel(private val sessionManager: SessionManager) : V
             eventName = customEventName.trim(),
             summary = "Custom test event triggered manually",
             properties = props
+        )
+
+        // Forward custom test event to CleverTap SDK per documentation
+        val ctProps = mutableMapOf<String, Any>()
+        for ((k, v) in props) {
+            if (v != null) ctProps[k] = v
+        }
+        CleverTapEvents.logEvent(customEventName.trim(), ctProps)
+    }
+
+    // Fires a sample Charged event (e.g. printing or dining payment) to test CleverTap's special transaction tracking.
+    fun triggerTestChargedPurchaseEvent() {
+        val txnId = "TXN-${System.currentTimeMillis() % 100000}"
+        val amount = 25.0
+        val items = listOf(
+            mapOf(
+                "Service name" to "Campus Stationery & Printing",
+                "Product category" to "Printing Services",
+                "Quantity" to 1,
+                "Price" to 25.0
+            )
+        )
+        val chargeMap = mapOf(
+            "Amount" to amount,
+            "Payment Mode" to "Campus Digital Card",
+            "Charged ID" to txnId,
+            "Items" to items
+        )
+        logEvent(
+            eventName = "Charged",
+            summary = "Charged \$25.00 for Campus Printing ($txnId)",
+            properties = chargeMap
+        )
+        CleverTapEvents.recordChargedEvent(
+            amount = amount,
+            paymentMode = "Campus Digital Card",
+            transactionId = txnId,
+            items = items
+        )
+    }
+
+    // Increments the student's Total Queues Joined counter on their CleverTap profile using incrementValue.
+    fun triggerIncrementQueuesJoined() {
+        CleverTapProfile.incrementQueuesJoined()
+        logProfileUpdate(
+            actionName = "incrementValue",
+            summary = "Incremented Total Queues Joined by 1",
+            profileMap = mapOf("Total Queues Joined" to "+1")
         )
     }
 
