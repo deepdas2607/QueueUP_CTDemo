@@ -54,3 +54,4 @@ object CleverTapIdentity {
         CleverTapEvents.logEvent(CleverTapEvents.Names.USER_LOGGED_OUT)
     }
 }
+

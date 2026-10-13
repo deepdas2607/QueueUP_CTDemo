@@ -36,3 +36,4 @@ object CleverTapConsent {
     // Returns true if analytics data collection is currently allowed.
     fun isAnalyticsPermitted(): Boolean = CleverTapConfig.isAnalyticsConsentGiven
 }
+

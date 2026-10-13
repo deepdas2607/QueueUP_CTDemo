@@ -15,6 +15,8 @@ class CleverTapManager private constructor() {
         if (cleverTapInstance == null) {
             // Register lifecycle callback before super.onCreate in Application class
             ActivityLifecycleCallback.register(application)
+            // Pass CleverTap Project credentials and region as explicit strings
+            CleverTapAPI.changeCredentials(CleverTapConfig.ACCOUNT_ID, CleverTapConfig.TOKEN, CleverTapConfig.REGION)
             cleverTapInstance = CleverTapAPI.getDefaultInstance(application.applicationContext)
             // Enable debug logging for testing and troubleshooting
             CleverTapAPI.setDebugLevel(CleverTapAPI.LogLevel.DEBUG.intValue())
@@ -36,3 +38,4 @@ class CleverTapManager private constructor() {
         }
     }
 }
+

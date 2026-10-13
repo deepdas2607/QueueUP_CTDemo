@@ -22,13 +22,13 @@
         <!-- CleverTap Project Credentials & Configuration -->
         <meta-data
             android:name="CLEVERTAP_ACCOUNT_ID"
-            android:value="TEST-CLEVERTAP-ACCOUNT-ID" />
+            android:value="587-878-Z97Z" />
         <meta-data
             android:name="CLEVERTAP_TOKEN"
-            android:value="TEST-CLEVERTAP-TOKEN" />
+            android:value="bab-ab5" />
         <meta-data
             android:name="CLEVERTAP_REGION"
-            android:value="in1" />
+            android:value="eu1" />
         <meta-data
             android:name="CLEVERTAP_IDENTIFIER"
             android:value="Identity,Email,Phone" />

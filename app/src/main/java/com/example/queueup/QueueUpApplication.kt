@@ -18,3 +18,4 @@ class QueueUpApplication : Application() {
         CleverTapManager.getInstance().initialize(this)
     }
 }
+

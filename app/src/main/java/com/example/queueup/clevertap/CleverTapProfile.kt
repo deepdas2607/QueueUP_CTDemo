@@ -115,3 +115,4 @@ object CleverTapProfile {
         incrementProfileValue("Completed Queues", 1)
     }
 }
+
