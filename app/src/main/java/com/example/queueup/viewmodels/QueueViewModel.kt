@@ -1,0 +1,320 @@
+// VIEWMODEL LAYER (VM in MVVM): Manages Campus Services list, Active Queue ticket, Queue History, and Simulation.
+
+package com.example.queueup.viewmodels
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.queueup.models.ActiveQueueData
+import com.example.queueup.models.JoinQueueRequest
+import com.example.queueup.models.QueueEntry
+import com.example.queueup.models.Service
+import com.example.queueup.network.ApiClient
+import com.example.queueup.network.NotificationHelper
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+
+class QueueViewModel(
+    private val notificationHelper: NotificationHelper,
+    private val inspectorViewModel: ActivityInspectorViewModel
+) : ViewModel() {
+
+    // Home screen state: 12 campus services, category filter, active ticket, and tips.
+    var services by mutableStateOf<List<Service>>(emptyList())
+    var selectedCategory by mutableStateOf("All")
+    var activeQueueData by mutableStateOf<ActiveQueueData?>(null)
+    var queueTips by mutableStateOf<List<String>>(emptyList())
+
+    // Service Detail and Queue History screen state.
+    var selectedService by mutableStateOf<Service?>(null)
+    var queueHistory by mutableStateOf<List<QueueEntry>>(emptyList())
+
+    // UI loading and error banner state.
+    var isLoading by mutableStateOf(false)
+    var errorMessage by mutableStateOf<String?>(null)
+
+    // Loads all 12 campus counters, the user's active queue ticket, and campus tips for HomeScreen.
+    fun loadHomeDashboardData() {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                val servicesRes = ApiClient.apiService.getAllCampusServices()
+                if (servicesRes.isSuccessful) {
+                    services = servicesRes.body() ?: emptyList()
+                }
+
+                val activeRes = ApiClient.apiService.getActiveQueue()
+                if (activeRes.isSuccessful) {
+                    activeQueueData = activeRes.body()?.activeQueue
+                }
+
+                val tipsRes = ApiClient.apiService.getCampusTips()
+                if (tipsRes.isSuccessful) {
+                    queueTips = tipsRes.body()?.tips ?: emptyList()
+                }
+            } catch (e: Exception) {
+                errorMessage = "Unable to load campus counters. Check backend connection."
+            }
+            isLoading = false
+        }
+    }
+
+    // Returns services filtered by the selected category chip on HomeScreen.
+    fun getFilteredServices(): List<Service> {
+        if (selectedCategory == "All") return services
+        return services.filter { it.category.equals(selectedCategory, ignoreCase = true) }
+    }
+
+    // Loads details for a specific campus counter when the user opens ServiceDetailScreen.
+    fun loadServiceDetail(serviceId: String) {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                val response = ApiClient.apiService.getCampusServiceById(serviceId)
+                if (response.isSuccessful && response.body() != null) {
+                    val service = response.body()!!
+                    selectedService = service
+                    inspectorViewModel.logEvent(
+                        eventName = "Service_Viewed",
+                        summary = "Viewed counter: ${service.name}",
+                        properties = mapOf(
+                            "service_id" to service.id,
+                            "service_name" to service.name,
+                            "category" to service.category,
+                            "current_waiting_count" to service.currentWaitingCount,
+                            "average_service_time_min" to service.averageServiceTime
+                        )
+                    )
+                } else {
+                    errorMessage = "Could not load service details"
+                }
+            } catch (e: Exception) {
+                errorMessage = "Network error while loading service details"
+            }
+            isLoading = false
+        }
+    }
+
+    // Enters the user into the queue for the selected campus counter and triggers a notification.
+    fun joinQueueForService(serviceId: String, onJoinedSuccess: () -> Unit) {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                val response = ApiClient.apiService.joinQueue(JoinQueueRequest(serviceId))
+                if (response.isSuccessful && response.body() != null) {
+                    val joinedData = response.body()!!
+                    activeQueueData = joinedData
+
+                    notificationHelper.showNotification(
+                        title = "Joined Queue: ${joinedData.queueEntry.service.name}",
+                        message = "Your Position is #${joinedData.queueEntry.position} (${joinedData.peopleAhead} ahead)"
+                    )
+
+                    inspectorViewModel.logEvent(
+                        eventName = "Queue_Joined",
+                        summary = "Joined ${joinedData.queueEntry.service.name} at Position #${joinedData.queueEntry.position}",
+                        properties = mapOf(
+                            "ticket_id" to joinedData.queueEntry.id,
+                            "service_id" to joinedData.queueEntry.serviceId,
+                            "service_name" to joinedData.queueEntry.service.name,
+                            "category" to joinedData.queueEntry.service.category,
+                            "initial_position" to joinedData.queueEntry.position,
+                            "people_ahead" to joinedData.peopleAhead,
+                            "estimated_wait_minutes" to joinedData.estimatedWaitMinutes
+                        )
+                    )
+                    isLoading = false
+                    onJoinedSuccess()
+                } else {
+                    isLoading = false
+                    errorMessage = parseError(response.errorBody()?.string(), "Failed to join queue")
+                }
+            } catch (e: Exception) {
+                isLoading = false
+                errorMessage = "Network error while joining queue"
+            }
+        }
+    }
+
+    // Fetches the user's current active queue ticket from GET /api/queues/my-active.
+    fun fetchActiveQueueStatus() {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                val response = ApiClient.apiService.getActiveQueue()
+                if (response.isSuccessful) {
+                    activeQueueData = response.body()?.activeQueue
+                }
+            } catch (e: Exception) {
+                errorMessage = "Failed to fetch active queue status"
+            }
+            isLoading = false
+        }
+    }
+
+    // Advances the simulated line by 1 turn when the user taps Refresh so they can test reaching #1.
+    fun refreshAndAdvanceQueueTurn() {
+        val currentTicketId = activeQueueData?.queueEntry?.id ?: return
+        val previousPosition = activeQueueData?.queueEntry?.position ?: 1
+
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                val response = ApiClient.apiService.refreshQueue(currentTicketId)
+                if (response.isSuccessful) {
+                    val updated = response.body()?.activeQueue
+                    activeQueueData = updated
+
+                    if (updated != null) {
+                        val newPos = updated.queueEntry.position
+                        if (newPos == 1 && updated.peopleAhead == 0) {
+                            notificationHelper.showNotification(
+                                title = "It's Your Turn! (#1)",
+                                message = "Please proceed to ${updated.queueEntry.service.name}"
+                            )
+                            inspectorViewModel.logEvent(
+                                eventName = "Ticket_Called",
+                                summary = "Reached #1 at ${updated.queueEntry.service.name}",
+                                properties = mapOf(
+                                    "ticket_id" to updated.queueEntry.id,
+                                    "service_name" to updated.queueEntry.service.name,
+                                    "position" to 1,
+                                    "status" to "READY_AT_COUNTER"
+                                )
+                            )
+                        } else {
+                            inspectorViewModel.logEvent(
+                                eventName = "Queue_Position_Updated",
+                                summary = "Moved from #$previousPosition to #$newPos at ${updated.queueEntry.service.name}",
+                                properties = mapOf(
+                                    "ticket_id" to updated.queueEntry.id,
+                                    "service_name" to updated.queueEntry.service.name,
+                                    "previous_position" to previousPosition,
+                                    "new_position" to newPos,
+                                    "people_ahead" to updated.peopleAhead,
+                                    "estimated_wait_minutes" to updated.estimatedWaitMinutes
+                                )
+                            )
+                        }
+                    }
+                    // Also refresh the services list counts in the background.
+                    val servicesRes = ApiClient.apiService.getAllCampusServices()
+                    if (servicesRes.isSuccessful) {
+                        services = servicesRes.body() ?: services
+                    }
+                }
+            } catch (e: Exception) {
+                errorMessage = "Failed to refresh queue status"
+            }
+            isLoading = false
+        }
+    }
+
+    // Completes the active queue ticket when the user finishes their turn at the counter.
+    fun completeActiveQueue(onCompleted: () -> Unit = {}) {
+        val currentData = activeQueueData ?: return
+        val ticketId = currentData.queueEntry.id
+        val serviceName = currentData.queueEntry.service.name
+
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                val response = ApiClient.apiService.completeQueue(ticketId)
+                if (response.isSuccessful) {
+                    activeQueueData = null
+                    notificationHelper.showNotification(
+                        title = "Service Completed",
+                        message = "Checked out from $serviceName"
+                    )
+                    inspectorViewModel.logEvent(
+                        eventName = "Service_Completed",
+                        summary = "Completed service at $serviceName",
+                        properties = mapOf(
+                            "ticket_id" to ticketId,
+                            "service_name" to serviceName,
+                            "final_status" to "SERVED"
+                        )
+                    )
+                    loadHomeDashboardData()
+                    onCompleted()
+                }
+            } catch (e: Exception) {
+                errorMessage = "Failed to complete service"
+            }
+            isLoading = false
+        }
+    }
+
+    // Cancels and leaves the active queue ticket when the user taps Leave Queue.
+    fun leaveActiveQueue(onLeftQueue: () -> Unit = {}) {
+        val currentData = activeQueueData ?: return
+        val ticketId = currentData.queueEntry.id
+        val serviceName = currentData.queueEntry.service.name
+        val positionWhenLeft = currentData.queueEntry.position
+
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                val response = ApiClient.apiService.leaveQueue(ticketId)
+                if (response.isSuccessful) {
+                    activeQueueData = null
+                    notificationHelper.showNotification(
+                        title = "Left Queue",
+                        message = "You left the line for $serviceName"
+                    )
+                    inspectorViewModel.logEvent(
+                        eventName = "Queue_Left",
+                        summary = "Cancelled ticket at $serviceName while at #$positionWhenLeft",
+                        properties = mapOf(
+                            "ticket_id" to ticketId,
+                            "service_name" to serviceName,
+                            "position_when_left" to positionWhenLeft,
+                            "final_status" to "CANCELLED"
+                        )
+                    )
+                    loadHomeDashboardData()
+                    onLeftQueue()
+                }
+            } catch (e: Exception) {
+                errorMessage = "Failed to leave queue"
+            }
+            isLoading = false
+        }
+    }
+
+    // Loads all past completed and cancelled queue tickets for QueueHistoryScreen.
+    fun loadQueueHistory() {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                val response = ApiClient.apiService.getQueueHistory()
+                if (response.isSuccessful) {
+                    queueHistory = response.body() ?: emptyList()
+                }
+            } catch (e: Exception) {
+                errorMessage = "Failed to load queue history"
+            }
+            isLoading = false
+        }
+    }
+
+    // Parses the error message string from a backend error JSON body.
+    private fun parseError(rawJson: String?, fallback: String): String {
+        if (rawJson.isNullOrBlank()) return fallback
+        return try {
+            JSONObject(rawJson).optString("error", fallback)
+        } catch (e: Exception) {
+            fallback
+        }
+    }
+}

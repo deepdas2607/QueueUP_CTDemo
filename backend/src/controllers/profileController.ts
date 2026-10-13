@@ -1,62 +1,44 @@
-import { Response, NextFunction } from 'express';
-import { PrismaClient, QueueStatus } from '@prisma/client';
-import { AuthenticatedRequest } from '../types';
+// Handles loading and updating the user's profile information and queue statistics.
 
-const prisma = new PrismaClient();
+import { Response } from 'express';
+import {
+  findUserById,
+  updateUserDetails,
+  getUserQueueStats,
+} from '../database/postgresDatabase';
+import { AuthRequest } from '../middleware/authMiddleware';
 
-export class ProfileController {
-  static async getProfile(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const userId = req.user!.userId;
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-      });
-
-      if (!user) {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
-
-      const totalJoined = await prisma.queueEntry.count({ where: { userId } });
-      const completed = await prisma.queueEntry.count({
-        where: { userId, status: QueueStatus.SERVED },
-      });
-      const cancelled = await prisma.queueEntry.count({
-        where: { userId, status: QueueStatus.CANCELLED },
-      });
-
-      const { passwordHash: _, ...safeUser } = user;
-      res.json({
-        user: safeUser,
-        stats: {
-          totalJoined,
-          completed,
-          cancelled,
-        },
-      });
-    } catch (error) {
-      next(error);
+// Returns the user's profile details along with their total joined, completed, and cancelled counts.
+export async function getUserProfileAndStats(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const user = await findUserById(req.userId!);
+    if (!user) {
+      res.status(404).json({ error: 'User profile not found' });
+      return;
     }
+    const stats = await getUserQueueStats(req.userId!);
+    res.json({ user, stats });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to load profile' });
   }
+}
 
-  static async updateProfile(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const userId = req.user!.userId;
-      const { name, occupation, interests } = req.body;
-
-      const updatedUser = await prisma.user.update({
-        where: { id: userId },
-        data: {
-          ...(name && { name }),
-          ...(occupation !== undefined && { occupation }),
-          ...(interests !== undefined && { interests }),
-        },
-      });
-
-      const { passwordHash: _, ...safeUser } = updatedUser;
-      res.json(safeUser);
-    } catch (error) {
-      next(error);
+// Updates the user's name, phone, occupation, and interests in PostgreSQL.
+export async function updateUserProfile(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { name, phone, occupation, interests } = req.body;
+    const updatedUser = await updateUserDetails(req.userId!, {
+      name,
+      phone,
+      occupation,
+      interests,
+    });
+    if (!updatedUser) {
+      res.status(404).json({ error: 'User profile not found' });
+      return;
     }
+    res.json(updatedUser);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to update profile' });
   }
 }

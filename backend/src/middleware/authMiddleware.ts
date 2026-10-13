@@ -1,22 +1,28 @@
-import { Response, NextFunction } from 'express';
+// Checks the JWT token in the Authorization header so only logged-in users can call protected APIs.
+
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { config } from '../config/env';
-import { AuthenticatedRequest, JwtPayload } from '../types';
 
-export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+export const JWT_SECRET = process.env.JWT_SECRET || 'queueup_simple_secret_key_2026';
 
-  if (!token) {
-    res.status(401).json({ error: 'Access token required' });
+export interface AuthRequest extends Request {
+  userId?: string;
+}
+
+// Reads "Authorization: Bearer <token>", verifies the token, and attaches req.userId.
+export function requireAuthToken(req: AuthRequest, res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Access token required. Please log in.' });
     return;
   }
 
+  const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
-    req.user = decoded;
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    req.userId = decoded.userId;
     next();
-  } catch (err) {
-    res.status(403).json({ error: 'Invalid or expired token' });
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid or expired login token.' });
   }
-};
+}
