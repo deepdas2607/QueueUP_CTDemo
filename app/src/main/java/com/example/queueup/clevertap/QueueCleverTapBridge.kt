@@ -57,13 +57,40 @@ object QueueCleverTapBridge {
     }
 
     // Dispatches Queue Served event and increments lifetime completed counter on profile.
-    fun onQueueServed(serviceId: String, serviceName: String) {
+    // Also automatically fires CleverTap's special Charged event for campus counter checkout.
+    fun onQueueServed(serviceId: String, serviceName: String, ticketId: String = "") {
         CleverTapEvents.trackQueueServed(
             serviceName = serviceName,
             serviceId = serviceId
         )
         // Increment completed queues counter on profile
         CleverTapProfile.incrementQueuesCompleted()
+
+        // Automatically fire CleverTap Charged event with contextual campus pricing & items
+        val (amount, itemName, category) = when {
+            serviceName.contains("Canteen", ignoreCase = true) ->
+                Triple(8.50, "Pre-order Campus Meal", "Food & Dining")
+            serviceName.contains("Bookstore", ignoreCase = true) || serviceName.contains("Stationery", ignoreCase = true) ->
+                Triple(15.00, "Textbook & Printing Tokens", "Stationery")
+            serviceName.contains("Administration", ignoreCase = true) ->
+                Triple(20.00, "Official Transcript & Certificate Fee", "Administration")
+            serviceName.contains("Sports", ignoreCase = true) ->
+                Triple(5.00, "Sports Complex Day Pass", "Campus Life")
+            serviceName.contains("IT Support", ignoreCase = true) ->
+                Triple(12.00, "Hardware Diagnostic Fee", "Tech Support")
+            else ->
+                Triple(10.00, "$serviceName Token Fee", "Campus Services")
+        }
+
+        val txnId = if (ticketId.isNotBlank()) "TXN-${ticketId.take(8).uppercase()}" else "TXN-${System.currentTimeMillis() % 100000}"
+        onCampusPurchase(
+            amount = amount,
+            serviceName = serviceName,
+            transactionId = txnId,
+            paymentMode = "Campus Digital Card",
+            itemName = itemName,
+            itemCategory = category
+        )
     }
 
     // Dispatches Queue Left event when student cancels or steps out of line.
@@ -98,10 +125,13 @@ object QueueCleverTapBridge {
         amount: Double,
         serviceName: String,
         transactionId: String,
-        paymentMode: String = "Campus Card"
+        paymentMode: String = "Campus Digital Card",
+        itemName: String = "Campus Service Token",
+        itemCategory: String = "Campus Services"
     ) {
         val item = mapOf<String, Any>(
-            "Service name" to serviceName,
+            "Item" to itemName,
+            "Product category" to itemCategory,
             "Quantity" to 1,
             "Price" to amount
         )

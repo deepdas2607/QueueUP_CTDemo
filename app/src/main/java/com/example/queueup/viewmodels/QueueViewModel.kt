@@ -309,12 +309,14 @@ class QueueViewModel(
                 if (response.isSuccessful) {
                     activeQueueData = null
 
-                    // Dispatch CleverTap Queue Served event and increment completed count on profile
+                    // Dispatch CleverTap Queue Served and Charged events per documentation
                     QueueCleverTapBridge.onQueueServed(
                         serviceId = currentData.queueEntry.serviceId,
-                        serviceName = serviceName
+                        serviceName = serviceName,
+                        ticketId = ticketId
                     )
 
+                    val chargedTxnId = "TXN-${ticketId.take(8).uppercase()}"
                     notificationHelper.showNotification(
                         title = "Service Completed",
                         message = "Checked out from $serviceName"
@@ -326,6 +328,15 @@ class QueueViewModel(
                             "ticket_id" to ticketId,
                             "service_name" to serviceName,
                             "final_status" to "SERVED"
+                        )
+                    )
+                    inspectorViewModel.logEvent(
+                        eventName = "Charged",
+                        summary = "Campus checkout transaction at $serviceName ($chargedTxnId)",
+                        properties = mapOf(
+                            "Charged ID" to chargedTxnId,
+                            "Payment Mode" to "Campus Digital Card",
+                            "Service" to serviceName
                         )
                     )
                     loadHomeDashboardData()
