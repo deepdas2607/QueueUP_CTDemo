@@ -16,6 +16,7 @@ backend/node_modules/
 backend/dist/
 backend/.pglite-data/
 backend/.postgres-db/
+backend/database/
 *.log
 backend/*.log
 docs/

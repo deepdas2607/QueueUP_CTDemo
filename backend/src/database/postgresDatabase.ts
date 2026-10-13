@@ -179,6 +179,13 @@ async function seedInitialCampusData(): Promise<void> {
     `INSERT INTO users (id, name, email, password_hash, phone, occupation, interests, role)
      VALUES ($1, $2, $3, $4, $5, $6, $7, 'USER')
      ON CONFLICT (email) DO NOTHING`,
+    [createId(), 'Alex River', 'alex@campus.edu', alexPass, '+919876543210', 'Computer Science Student', 'Tech, Library, Coding']
+  );
+
+  await db.query(
+    `INSERT INTO users (id, name, email, password_hash, phone, occupation, interests, role)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'USER')
+     ON CONFLICT (email) DO NOTHING`,
     [createId(), 'Alex', 'a@b.com', alexPass, '+919876543210', 'Computer Science Student', 'Tech, Library, Coding']
   );
 
