@@ -267,6 +267,41 @@ fun ActivityInspectorScreen(
                                     Text("App Inbox", fontSize = 12.sp)
                                 }
                             }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        com.example.queueup.clevertap.CleverTapCustomTemplates.syncTemplatesWithDashboard(
+                                            CleverTapManager.getInstance().getCleverTapInstance()
+                                        )
+                                        inspectorViewModel.logSystemEvent(
+                                            actionName = "Custom_Templates_Synced",
+                                            summary = "Synced Campus_Queue_Alert_Banner to CleverTap dashboard",
+                                            properties = mapOf("status" to "syncRegisteredInAppTemplates() invoked")
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Sync Templates", fontSize = 11.sp)
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        com.example.queueup.clevertap.CleverTapCustomTemplates.simulateLocalTemplate()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Simulate In-App", fontSize = 11.sp)
+                                }
+                            }
                         }
                     }
                 }

@@ -134,6 +134,11 @@ fun QueueUpNavigationApp(
     LaunchedEffect(inspectorViewModel) {
         onInspectorAttached(inspectorViewModel)
 
+        // Connect custom template logging to ActivityInspectorViewModel
+        com.example.queueup.clevertap.CleverTapCustomTemplates.onTemplateEventLogged = { eventName, summary, props ->
+            inspectorViewModel.logEvent(eventName, summary, props)
+        }
+
         // Sync FCM token with CleverTap and log in inspector for live push verification
         com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
@@ -181,10 +186,11 @@ fun QueueUpNavigationApp(
         }
     }
 
-    NavHost(
-        navController = navController,
-        startDestination = "splash"
-    ) {
+    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
+        NavHost(
+            navController = navController,
+            startDestination = "splash"
+        ) {
         composable("splash") {
             SplashScreen(
                 authViewModel = authViewModel,
@@ -315,5 +321,20 @@ fun QueueUpNavigationApp(
                 onBack = { navController.popBackStack() }
             )
         }
+    }
+
+    // CleverTap Custom Code In-App Banner overlay
+    com.example.queueup.clevertap.CleverTapCustomTemplates.activeCustomTemplate?.let { template ->
+        com.example.queueup.views.components.CustomInAppBanner(
+            model = template,
+            onAction = {
+                com.example.queueup.clevertap.CleverTapCustomTemplates.triggerAction(context)
+            },
+            onDismiss = {
+                com.example.queueup.clevertap.CleverTapCustomTemplates.dismissActiveTemplate()
+            },
+            modifier = Modifier.align(androidx.compose.ui.Alignment.TopCenter)
+        )
+    }
     }
 }

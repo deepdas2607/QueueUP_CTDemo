@@ -19,6 +19,9 @@ class QueueUpApplication : Application() {
         ActivityLifecycleCallback.register(this)
         super.onCreate()
 
+        // Configure CleverTap Custom Code In-App Templates before SDK initialization
+        com.example.queueup.clevertap.CleverTapCustomTemplates.registerTemplates()
+
         // Configure CleverTap Push Templates Handler for rich push notifications (Carousels, Timers, 5-icon)
         CleverTapAPI.setNotificationHandler(PushTemplateNotificationHandler() as NotificationHandler)
 
