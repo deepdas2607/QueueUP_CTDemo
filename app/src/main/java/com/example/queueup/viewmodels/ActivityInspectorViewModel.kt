@@ -168,6 +168,8 @@ class ActivityInspectorViewModel(private val sessionManager: SessionManager) : V
             "Phone" to (sessionManager.getUserPhone() ?: ""),
             "Occupation" to (sessionManager.getUserOccupation() ?: "Student"),
             "Interests" to (sessionManager.getUserInterests() ?: "Campus Life"),
+            "CleverTap_ID" to (com.example.queueup.clevertap.CleverTapManager.getInstance().getCleverTapInstance()?.cleverTapID ?: "pending"),
+            "FCM_Token" to (sessionManager.getFcmToken() ?: "pending registration"),
             "MSG-push" to sessionManager.isNotificationsEnabled(),
             "Consent_Analytics" to sessionManager.isPrivacyConsentGiven(),
             "Dark_Mode" to sessionManager.isDarkModeEnabled()

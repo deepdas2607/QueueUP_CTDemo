@@ -58,6 +58,10 @@ class SessionManager(context: Context) {
     fun isPrivacyConsentGiven(): Boolean = prefs.getBoolean("privacy_consent", true)
     fun setPrivacyConsentGiven(given: Boolean) = prefs.edit().putBoolean("privacy_consent", given).apply()
 
+    // Saves and reads the device Firebase Cloud Messaging (FCM) registration token for push notifications.
+    fun saveFcmToken(token: String) = prefs.edit().putString("fcm_token", token).apply()
+    fun getFcmToken(): String? = prefs.getString("fcm_token", null)
+
     // Wipes all saved user tokens and fields when logging out.
     fun clearSession() {
         prefs.edit().clear().apply()
