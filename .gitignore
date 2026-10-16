@@ -25,3 +25,8 @@ prompt.md
 # Firebase & Google services config
 google-services.json
 app/google-services.json
+
+# Local agent skills
+.agents/
+skills-lock.json
+

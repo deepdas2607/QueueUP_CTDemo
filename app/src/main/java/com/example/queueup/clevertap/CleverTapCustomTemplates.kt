@@ -128,7 +128,11 @@ object CleverTapCustomTemplates {
     fun triggerAction(context: Context) {
         val model = activeCustomTemplate ?: return
         model.contextRef?.let { ctx ->
-            ctx.triggerActionArgument("on_click_action", context)
+            try {
+                ctx.triggerActionArgument("on_click_action", context)
+            } catch (e: Exception) {
+                Log.w(TAG, "Error triggering on_click_action argument", e)
+            }
             ctx.setDismissed()
         }
         activeCustomTemplate = null
@@ -161,3 +165,4 @@ object CleverTapCustomTemplates {
         )
     }
 }
+

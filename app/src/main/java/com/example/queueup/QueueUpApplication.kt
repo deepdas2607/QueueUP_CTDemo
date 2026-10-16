@@ -32,14 +32,18 @@ class QueueUpApplication : Application() {
         CleverTapAPI.getDefaultInstance(this)?.initializeInbox()
 
         // Fetch active FCM registration token and sync with CleverTap
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val token = task.result
-                Log.d("QueueUpApplication", "FCM token retrieved: $token")
-                CleverTapAPI.getDefaultInstance(this)?.pushFcmRegistrationId(token, true)
-            } else {
-                Log.w("QueueUpApplication", "Fetching FCM token failed", task.exception)
+        try {
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val token = task.result
+                    Log.d("QueueUpApplication", "FCM token retrieved: $token")
+                    CleverTapAPI.getDefaultInstance(this)?.pushFcmRegistrationId(token, true)
+                } else {
+                    Log.w("QueueUpApplication", "Fetching FCM token failed", task.exception)
+                }
             }
+        } catch (e: Exception) {
+            Log.w("QueueUpApplication", "Firebase Messaging not initialized or unavailable", e)
         }
     }
 }

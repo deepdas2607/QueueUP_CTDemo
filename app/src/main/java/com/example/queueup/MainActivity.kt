@@ -140,20 +140,24 @@ fun QueueUpNavigationApp(
         }
 
         // Sync FCM token with CleverTap and log in inspector for live push verification
-        com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val token = task.result
-                sessionManager.saveFcmToken(token)
-                com.example.queueup.clevertap.CleverTapManager.getInstance().pushFcmToken(token)
-                inspectorViewModel.logSystemEvent(
-                    actionName = "FCM_Push_Token_Registered",
-                    summary = "FCM token synced with CleverTap for mobile push delivery",
-                    properties = mapOf(
-                        "fcm_token" to token,
-                        "token_preview" to token.take(24) + "..."
+        try {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val token = task.result
+                    sessionManager.saveFcmToken(token)
+                    com.example.queueup.clevertap.CleverTapManager.getInstance().pushFcmToken(token)
+                    inspectorViewModel.logSystemEvent(
+                        actionName = "FCM_Push_Token_Registered",
+                        summary = "FCM token synced with CleverTap for mobile push delivery",
+                        properties = mapOf(
+                            "fcm_token" to token,
+                            "token_preview" to token.take(24) + "..."
+                        )
                     )
-                )
+                }
             }
+        } catch (e: Exception) {
+            Log.w("MainActivity", "Firebase Messaging not initialized or unavailable", e)
         }
     }
 
