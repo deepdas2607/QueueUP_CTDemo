@@ -26,6 +26,64 @@ class CleverTapManager private constructor() {
     // Provides the active CleverTapAPI instance.
     fun getInstance(): CleverTapAPI? = cleverTapInstance
 
+    // Helper getter for active CleverTapAPI instance.
+    fun getCleverTapInstance(): CleverTapAPI? = cleverTapInstance
+
+    // Registers the Firebase Cloud Messaging registration token with CleverTap.
+    fun pushFcmToken(token: String) {
+        cleverTapInstance?.pushFcmRegistrationId(token, true)
+    }
+
+    // Prompts user for notification permission using CleverTap Local In-App Push Primer.
+    fun promptPushPrimer(activity: androidx.fragment.app.FragmentActivity) {
+        try {
+            val primer = com.clevertap.android.sdk.inapp.CTLocalInApp.builder()
+                .setInAppType(com.clevertap.android.sdk.inapp.CTLocalInApp.InAppType.ALERT)
+                .setTitleText("Campus Queue Updates")
+                .setMessageText("Enable notifications to receive real-time turn alerts, queue reminders, and campus notices.")
+                .followDeviceOrientation(true)
+                .setPositiveBtnText("Allow")
+                .setNegativeBtnText("Not Now")
+                .setFallbackToSettings(true)
+                .build()
+            cleverTapInstance?.promptPushPrimer(primer)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    // Opens CleverTap native App Inbox styled to match the QueueUp campus theme.
+    fun showAppInbox() {
+        try {
+            val styleConfig = com.clevertap.android.sdk.CTInboxStyleConfig().apply {
+                val tabs = arrayListOf("All", "Announcements")
+                setTabs(tabs)
+                setTabBackgroundColor("#FFFFFF")
+                setSelectedTabIndicatorColor("#2563EB")
+                setSelectedTabColor("#2563EB")
+                setUnselectedTabColor("#64748B")
+                setBackButtonColor("#2563EB")
+                setNavBarTitleColor("#1E293B")
+                setNavBarTitle("Campus Inbox")
+                setNavBarColor("#FFFFFF")
+                setInboxBackgroundColor("#F8FAFC")
+            }
+            cleverTapInstance?.showAppInbox(styleConfig)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    // Suspends in-app notification popups during critical flows (e.g. active counter turn checkout).
+    fun suspendInAppNotifications() {
+        cleverTapInstance?.suspendInAppNotifications()
+    }
+
+    // Resumes in-app notification popups once critical flow finishes.
+    fun resumeInAppNotifications() {
+        cleverTapInstance?.resumeInAppNotifications()
+    }
+
     companion object {
         @Volatile
         private var instance: CleverTapManager? = null

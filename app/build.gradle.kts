@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -47,6 +48,12 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+
+    // Firebase BoM, Analytics, & Cloud Messaging (FCM)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.messaging)
 
     // Retrofit & OkHttp
     implementation(libs.retrofit.core)
@@ -54,8 +61,15 @@ dependencies {
     implementation(libs.okhttp.core)
     implementation(libs.okhttp.logging)
 
-    // CleverTap Android SDK
+    // CleverTap Android SDK & Push Templates
     implementation(libs.clevertap.sdk)
+    implementation(libs.clevertap.push.templates)
+
+    // CleverTap App Inbox UI dependencies
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.viewpager)
+    implementation(libs.google.material)
+    implementation(libs.glide)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

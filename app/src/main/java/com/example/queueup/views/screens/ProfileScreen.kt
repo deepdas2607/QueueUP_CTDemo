@@ -13,9 +13,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.queueup.clevertap.CleverTapManager
 import com.example.queueup.viewmodels.ActivityInspectorViewModel
 import com.example.queueup.viewmodels.ProfileViewModel
 import com.example.queueup.views.components.CustomTextField
@@ -267,6 +269,23 @@ fun ProfileScreen(
                         checked = profileViewModel.notificationsEnabled,
                         onCheckedChange = { profileViewModel.togglePushNotifications(it) }
                     )
+                }
+
+                val currentContext = LocalContext.current
+                OutlinedButton(
+                    onClick = {
+                        (currentContext as? androidx.fragment.app.FragmentActivity)?.let { activity ->
+                            CleverTapManager.getInstance().promptPushPrimer(activity)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Request Permission via Push Primer", fontSize = 12.sp)
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))

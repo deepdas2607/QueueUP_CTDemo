@@ -21,3 +21,7 @@ backend/database/
 backend/*.log
 docs/
 prompt.md
+
+# Firebase & Google services config
+google-services.json
+app/google-services.json

@@ -2,8 +2,11 @@
 
 package com.example.queueup
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,12 +15,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.clevertap.android.sdk.InAppNotificationButtonListener
+import com.clevertap.android.sdk.pushnotification.CTPushNotificationListener
+import com.example.queueup.clevertap.CleverTapManager
 import com.example.queueup.clevertap.QueueCleverTapBridge
 import com.example.queueup.network.ApiClient
 import com.example.queueup.network.NotificationHelper
@@ -29,7 +37,9 @@ import com.example.queueup.viewmodels.QueueViewModel
 import com.example.queueup.views.screens.*
 import com.example.queueup.views.theme.QueueUpTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity(), CTPushNotificationListener, InAppNotificationButtonListener {
+
+    private var inspectorViewModelRef: ActivityInspectorViewModel? = null
 
     // Called by Android when the app launches; sets up SessionManager, ApiClient, and the Compose UI.
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,6 +48,14 @@ class MainActivity : ComponentActivity() {
 
         val sessionManager = SessionManager(applicationContext)
         ApiClient.init(sessionManager)
+
+        // Register CleverTap Push Notification and In-App Action listeners
+        val cleverTap = CleverTapManager.getInstance().getCleverTapInstance()
+        cleverTap?.setCTPushNotificationListener(this)
+        cleverTap?.setInAppNotificationButtonListener(this)
+
+        // On Android 13+ (API 33+), prompt CleverTap Local In-App Push Primer if notification permission is not granted
+        promptPushPrimerIfRequired()
 
         setContent {
             var isDarkMode by remember { mutableStateOf(sessionManager.isDarkModeEnabled()) }
@@ -53,11 +71,45 @@ class MainActivity : ComponentActivity() {
                         onToggleDarkMode = { enabled ->
                             sessionManager.setDarkModeEnabled(enabled)
                             isDarkMode = enabled
+                        },
+                        onInspectorAttached = { vm ->
+                            inspectorViewModelRef = vm
                         }
                     )
                 }
             }
         }
+    }
+
+    // Displays CleverTap Local In-App Push Primer dialog on Android 13+ devices
+    private fun promptPushPrimerIfRequired() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                CleverTapManager.getInstance().promptPushPrimer(this)
+            }
+        }
+    }
+
+    // Callback when a CleverTap push notification is clicked by the user
+    override fun onNotificationClickedPayloadReceived(payload: java.util.HashMap<String, Any>?) {
+        Log.d("MainActivity", "CleverTap Push clicked with payload: $payload")
+        val safeMap = payload?.mapValues { it.value } ?: emptyMap()
+        inspectorViewModelRef?.logEvent(
+            eventName = "Push_Notification_Clicked",
+            summary = "User opened push notification",
+            properties = safeMap
+        )
+    }
+
+    // Callback when an interactive button in a CleverTap In-App message is clicked
+    override fun onInAppButtonClick(payload: java.util.HashMap<String, String>?) {
+        Log.d("MainActivity", "CleverTap In-App button clicked: $payload")
+        val safeMap = payload?.mapValues { it.value } ?: emptyMap()
+        inspectorViewModelRef?.logEvent(
+            eventName = "InApp_Button_Clicked",
+            summary = "User clicked In-App button action",
+            properties = safeMap
+        )
     }
 }
 
@@ -66,7 +118,8 @@ class MainActivity : ComponentActivity() {
 fun QueueUpNavigationApp(
     sessionManager: SessionManager,
     isDarkMode: Boolean,
-    onToggleDarkMode: (Boolean) -> Unit
+    onToggleDarkMode: (Boolean) -> Unit,
+    onInspectorAttached: (ActivityInspectorViewModel) -> Unit = {}
 ) {
     val context = LocalContext.current
     val navController = rememberNavController()
@@ -77,6 +130,10 @@ fun QueueUpNavigationApp(
     val authViewModel = remember { AuthViewModel(sessionManager, inspectorViewModel) }
     val queueViewModel = remember { QueueViewModel(notificationHelper, inspectorViewModel) }
     val profileViewModel = remember { ProfileViewModel(sessionManager, inspectorViewModel) }
+
+    LaunchedEffect(inspectorViewModel) {
+        onInspectorAttached(inspectorViewModel)
+    }
 
     // Restore CleverTap session if the user already has saved credentials on the device
     LaunchedEffect(Unit) {

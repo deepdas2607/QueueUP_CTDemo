@@ -17,10 +17,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.queueup.clevertap.CleverTapManager
 import com.example.queueup.models.ActivityLogCategory
 import com.example.queueup.viewmodels.ActivityInspectorViewModel
 import com.example.queueup.views.theme.SecondaryTeal
@@ -31,6 +33,7 @@ fun ActivityInspectorScreen(
     inspectorViewModel: ActivityInspectorViewModel,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     var showProfileSnapshot by remember { mutableStateOf(false) }
     var showEventSandbox by remember { mutableStateOf(false) }
 
@@ -234,6 +237,34 @@ fun ActivityInspectorScreen(
                                     Icon(imageVector = Icons.Default.TrendingUp, contentDescription = null, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text("Increment (+1)", fontSize = 12.sp)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        (context as? androidx.fragment.app.FragmentActivity)?.let {
+                                            CleverTapManager.getInstance().promptPushPrimer(it)
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Push Primer", fontSize = 12.sp)
+                                }
+                                OutlinedButton(
+                                    onClick = { CleverTapManager.getInstance().showAppInbox() },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Inbox, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("App Inbox", fontSize = 12.sp)
                                 }
                             }
                         }

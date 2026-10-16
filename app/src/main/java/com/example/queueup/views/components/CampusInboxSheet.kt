@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.queueup.clevertap.CleverTapManager
 import com.example.queueup.models.CampusAnnouncement
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,6 +65,20 @@ fun CampusInboxSheet(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Mark Read", fontSize = 12.sp)
                 }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = {
+                    onDismiss()
+                    CleverTapManager.getInstance().showAppInbox()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(imageVector = Icons.Default.Inbox, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Open CleverTap App Inbox", style = MaterialTheme.typography.labelLarge)
             }
 
             Spacer(modifier = Modifier.height(12.dp))

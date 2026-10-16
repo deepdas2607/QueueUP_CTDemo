@@ -35,6 +35,29 @@
         <meta-data
             android:name="CLEVERTAP_USE_GOOGLE_AD_ID"
             android:value="0" />
+        <!-- Notification small icon in status bar (alpha-only) -->
+        <meta-data
+            android:name="CLEVERTAP_NOTIFICATION_ICON"
+            android:value="ic_stat_notification" />
+        <!-- Background sync support for pull notifications -->
+        <meta-data
+            android:name="CLEVERTAP_BACKGROUND_SYNC"
+            android:value="1" />
+
+        <!-- Firebase Cloud Messaging listener service for push messages and push templates -->
+        <service
+            android:name=".clevertap.QueueUpFcmMessageService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- CleverTap push click & impression tracking receiver -->
+        <receiver
+            android:name="com.clevertap.android.sdk.pushnotification.CTPushNotificationReceiver"
+            android:exported="false"
+            android:enabled="true" />
 
         <!-- R8 / ProGuard safeguard for legacy background job service -->
         <service
