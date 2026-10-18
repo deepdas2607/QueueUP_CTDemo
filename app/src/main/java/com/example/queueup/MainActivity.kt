@@ -54,6 +54,9 @@ class MainActivity : FragmentActivity(), CTPushNotificationListener, InAppNotifi
         cleverTap?.setCTPushNotificationListener(this)
         cleverTap?.setInAppNotificationButtonListener(this)
 
+        // Register CleverTap Native Display listener
+        com.example.queueup.clevertap.CleverTapNativeDisplay.initialize(cleverTap)
+
         // On Android 13+ (API 33+), prompt CleverTap Local In-App Push Primer if notification permission is not granted
         promptPushPrimerIfRequired()
 
@@ -136,6 +139,11 @@ fun QueueUpNavigationApp(
 
         // Connect custom template logging to ActivityInspectorViewModel
         com.example.queueup.clevertap.CleverTapCustomTemplates.onTemplateEventLogged = { eventName, summary, props ->
+            inspectorViewModel.logEvent(eventName, summary, props)
+        }
+
+        // Connect Native Display logging to ActivityInspectorViewModel
+        com.example.queueup.clevertap.CleverTapNativeDisplay.onDisplayUnitEventLogged = { eventName, summary, props ->
             inspectorViewModel.logEvent(eventName, summary, props)
         }
 

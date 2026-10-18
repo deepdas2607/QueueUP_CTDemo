@@ -302,6 +302,36 @@ fun ActivityInspectorScreen(
                                     Text("Simulate In-App", fontSize = 11.sp)
                                 }
                             }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        com.example.queueup.clevertap.CleverTapNativeDisplay.simulateLocalDisplayUnit()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Simulate Display", fontSize = 11.sp)
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        com.example.queueup.clevertap.CleverTapNativeDisplay.refreshDisplayUnits(
+                                            CleverTapManager.getInstance().getCleverTapInstance()
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Fetch Units", fontSize = 11.sp)
+                                }
+                            }
                         }
                     }
                 }

@@ -31,6 +31,9 @@ class QueueUpApplication : Application() {
         // Initialize CleverTap App Inbox
         CleverTapAPI.getDefaultInstance(this)?.initializeInbox()
 
+        // Initialize CleverTap Native Display listener (DisplayUnitListener)
+        com.example.queueup.clevertap.CleverTapNativeDisplay.initialize(CleverTapAPI.getDefaultInstance(this))
+
         // Fetch active FCM registration token and sync with CleverTap
         try {
             FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->

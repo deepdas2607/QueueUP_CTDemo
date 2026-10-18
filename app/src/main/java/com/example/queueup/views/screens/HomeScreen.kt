@@ -14,11 +14,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.queueup.clevertap.CleverTapManager
+import com.example.queueup.clevertap.CleverTapNativeDisplay
 import com.example.queueup.viewmodels.ActivityInspectorViewModel
 import com.example.queueup.viewmodels.QueueViewModel
 import com.example.queueup.views.components.CampusInboxSheet
+import com.example.queueup.views.components.NativeDisplayCard
 import com.example.queueup.views.components.QueueCard
 import com.example.queueup.views.components.ServiceCard
 
@@ -33,6 +37,7 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToInspector: () -> Unit
 ) {
+    val context = LocalContext.current
     var showAnnouncementsSheet by remember { mutableStateOf(false) }
     val categories = listOf("All", "Academic", "Admin & Finance", "Campus Life", "Tech & Health")
 
@@ -141,6 +146,34 @@ fun HomeScreen(
                         onRefreshAndAdvance = { queueViewModel.refreshAndAdvanceQueueTurn() },
                         onCompleteService = { queueViewModel.completeActiveQueue() },
                         onLeaveQueue = { queueViewModel.leaveActiveQueue() }
+                    )
+                }
+            }
+
+            // CleverTap Native Display Units (Embedded contextual cards)
+            if (CleverTapNativeDisplay.activeDisplayUnits.isNotEmpty()) {
+                items(
+                    items = CleverTapNativeDisplay.activeDisplayUnits,
+                    key = { it.unitID ?: it.hashCode().toString() }
+                ) { unit ->
+                    NativeDisplayCard(
+                        unit = unit,
+                        onViewed = {
+                            CleverTapNativeDisplay.recordDisplayUnitViewed(
+                                unit = unit,
+                                cleverTapAPI = CleverTapManager.getInstance().getCleverTapInstance()
+                            )
+                        },
+                        onClicked = {
+                            CleverTapNativeDisplay.recordDisplayUnitClicked(
+                                unit = unit,
+                                context = context,
+                                cleverTapAPI = CleverTapManager.getInstance().getCleverTapInstance()
+                            )
+                        },
+                        onDismiss = {
+                            CleverTapNativeDisplay.dismissDisplayUnit(unit)
+                        }
                     )
                 }
             }
