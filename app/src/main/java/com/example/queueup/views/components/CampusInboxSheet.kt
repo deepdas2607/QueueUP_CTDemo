@@ -71,8 +71,8 @@ fun CampusInboxSheet(
 
             OutlinedButton(
                 onClick = {
-                    onDismiss()
                     CleverTapManager.getInstance().showAppInbox()
+                    onDismiss()
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {

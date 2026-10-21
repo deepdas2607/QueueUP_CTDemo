@@ -72,6 +72,59 @@ class QueueViewModel(
         }
     }
 
+    // Refreshes backend dashboard counters AND triggers an immediate real-time sync with CleverTap EU1 server.
+    fun refreshDashboard() {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                val servicesRes = ApiClient.apiService.getAllCampusServices()
+                if (servicesRes.isSuccessful) {
+                    services = servicesRes.body() ?: emptyList()
+                }
+
+                val activeRes = ApiClient.apiService.getActiveQueue()
+                if (activeRes.isSuccessful) {
+                    activeQueueData = activeRes.body()?.activeQueue
+                    if (activeQueueData != null && activeQueueData!!.queueEntry.position > 1) {
+                        startAutoQueuePositionPolling()
+                    }
+                }
+
+                val tipsRes = ApiClient.apiService.getCampusTips()
+                if (tipsRes.isSuccessful) {
+                    queueTips = tipsRes.body()?.tips ?: emptyList()
+                }
+            } catch (e: Exception) {
+                errorMessage = "Unable to load campus counters. Check backend connection."
+            }
+
+            // Real-time CleverTap server sync & queue flush
+            try {
+                QueueCleverTapBridge.onDashboardRefreshed()
+                inspectorViewModel.logEvent(
+                    eventName = "Dashboard_Refreshed",
+                    summary = "Triggered real-time CleverTap sync & queue flush",
+                    properties = mapOf("source" to "manual_refresh_button")
+                )
+            } catch (e: Exception) {
+                // Non-blocking
+            }
+
+            // Allow network roundtrip (1s) and ensure newly returned Native Display units are visible
+            delay(1000)
+            try {
+                com.example.queueup.clevertap.CleverTapNativeDisplay.refreshDisplayUnits(
+                    com.example.queueup.clevertap.CleverTapManager.getInstance().getCleverTapInstance()
+                )
+            } catch (e: Exception) {
+                // Safe
+            }
+
+            isLoading = false
+        }
+    }
+
     // Returns services filtered by the selected category chip on HomeScreen.
     fun getFilteredServices(): List<Service> {
         if (selectedCategory == "All") return services

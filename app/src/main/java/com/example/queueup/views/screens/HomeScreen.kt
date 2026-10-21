@@ -101,9 +101,9 @@ fun HomeScreen(
                         }
                     }
 
-                    // 3. Refresh Services & Active Queue
-                    IconButton(onClick = { queueViewModel.loadHomeDashboardData() }) {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh Dashboard")
+                    // 3. Refresh Services, Active Queue & Real-time CleverTap Sync
+                    IconButton(onClick = { queueViewModel.refreshDashboard() }) {
+                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh Dashboard & Sync CleverTap")
                     }
 
                     // 4. Queue History

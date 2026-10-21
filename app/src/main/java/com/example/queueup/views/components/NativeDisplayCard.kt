@@ -47,6 +47,18 @@ fun NativeDisplayCard(
         null
     }
 
+    val parsedTitleColor = try {
+        content?.titleColor?.takeIf { it.startsWith("#") }?.let { Color(android.graphics.Color.parseColor(it)) }
+    } catch (e: Exception) {
+        null
+    }
+
+    val parsedMessageColor = try {
+        content?.messageColor?.takeIf { it.startsWith("#") }?.let { Color(android.graphics.Color.parseColor(it)) }
+    } catch (e: Exception) {
+        null
+    }
+
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -106,7 +118,7 @@ fun NativeDisplayCard(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = parsedTitleColor ?: MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -115,7 +127,7 @@ fun NativeDisplayCard(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = parsedMessageColor ?: MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(14.dp))

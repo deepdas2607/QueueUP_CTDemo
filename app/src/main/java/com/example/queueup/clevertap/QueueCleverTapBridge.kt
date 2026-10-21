@@ -2,6 +2,8 @@
 
 package com.example.queueup.clevertap
 
+import com.clevertap.android.sdk.inapp.callbacks.FetchInAppsCallback
+
 object QueueCleverTapBridge {
 
     // Dispatches Queue Joined event and increments the student's lifetime joined counter in CleverTap.
@@ -141,6 +143,47 @@ object QueueCleverTapBridge {
             transactionId = transactionId,
             items = listOf(item)
         )
+    }
+
+    // Forces an immediate real-time sync with CleverTap EU1 server:
+    // Pushes Dashboard Refreshed event, flushes network queue immediately, and refreshes In-Apps & Native Display.
+    fun onDashboardRefreshed() {
+        val cleverTap = CleverTapManager.getInstance().getCleverTapInstance() ?: return
+
+        // 1. Log real-time event to trigger server-side evaluation
+        CleverTapEvents.logEvent(
+            CleverTapEvents.Names.DASHBOARD_REFRESHED,
+            mapOf(
+                "action" to "manual_refresh",
+                "source" to "home_dashboard"
+            )
+        )
+
+        // 2. Immediately flush the network queue (bypasses SDK batch timers)
+        try {
+            cleverTap.flush()
+            android.util.Log.d("QueueCleverTapBridge", "cleverTap.flush() executed successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("QueueCleverTapBridge", "Error executing cleverTap.flush()", e)
+        }
+
+        // 3. Request fresh In-App campaigns directly from CleverTap server
+        try {
+            cleverTap.fetchInApps(object : FetchInAppsCallback {
+                override fun onInAppsFetched(isSuccess: Boolean) {
+                    android.util.Log.d("QueueCleverTapBridge", "fetchInApps completed: success=$isSuccess")
+                }
+            })
+        } catch (e: Exception) {
+            android.util.Log.e("QueueCleverTapBridge", "Error executing fetchInApps", e)
+        }
+
+        // 4. Pull any active Native Display units from SDK cache
+        try {
+            CleverTapNativeDisplay.refreshDisplayUnits(cleverTap)
+        } catch (e: Exception) {
+            android.util.Log.e("QueueCleverTapBridge", "Error refreshing display units", e)
+        }
     }
 }
 

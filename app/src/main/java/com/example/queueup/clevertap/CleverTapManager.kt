@@ -3,7 +3,9 @@
 package com.example.queueup.clevertap
 
 import android.app.Application
+import android.util.Log
 import com.clevertap.android.sdk.ActivityLifecycleCallback
+import com.clevertap.android.sdk.CTInboxListener
 import com.clevertap.android.sdk.CleverTapAPI
 
 class CleverTapManager private constructor() {
@@ -20,6 +22,17 @@ class CleverTapManager private constructor() {
             cleverTapInstance = CleverTapAPI.getDefaultInstance(application.applicationContext)
             // Enable debug logging for testing and troubleshooting
             CleverTapAPI.setDebugLevel(CleverTapAPI.LogLevel.DEBUG.intValue())
+
+            // Register CTInboxListener to monitor App Inbox sync events
+            cleverTapInstance?.ctNotificationInboxListener = object : CTInboxListener {
+                override fun inboxDidInitialize() {
+                    Log.d("CleverTapManager", "CTInboxListener: inboxDidInitialize() - total inbox messages: ${cleverTapInstance?.inboxMessageCount}")
+                }
+
+                override fun inboxMessagesDidUpdate() {
+                    Log.d("CleverTapManager", "CTInboxListener: inboxMessagesDidUpdate() - total inbox messages: ${cleverTapInstance?.inboxMessageCount}")
+                }
+            }
         }
     }
 
@@ -56,7 +69,7 @@ class CleverTapManager private constructor() {
     fun showAppInbox() {
         try {
             val styleConfig = com.clevertap.android.sdk.CTInboxStyleConfig().apply {
-                val tabs = arrayListOf("All", "Announcements")
+                val tabs = arrayListOf("Announcements")
                 setTabs(tabs)
                 setTabBackgroundColor("#FFFFFF")
                 setSelectedTabIndicatorColor("#2563EB")

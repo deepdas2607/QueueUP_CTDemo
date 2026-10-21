@@ -35,6 +35,10 @@
         <meta-data
             android:name="CLEVERTAP_USE_GOOGLE_AD_ID"
             android:value="0" />
+        <!-- FCM Sender ID for push notification routing (Sender ID / Project Number from google-services.json) -->
+        <meta-data
+            android:name="FCM_SENDER_ID"
+            android:value="id:86584646518" />
         <!-- Notification small icon in status bar (alpha-only) -->
         <meta-data
             android:name="CLEVERTAP_NOTIFICATION_ICON"

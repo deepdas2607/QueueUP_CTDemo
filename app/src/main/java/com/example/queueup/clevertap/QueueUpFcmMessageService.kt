@@ -15,9 +15,25 @@ class QueueUpFcmMessageService : FirebaseMessagingService() {
         super.onMessageReceived(remoteMessage)
         try {
             Log.d(TAG, "FCM message received from: ${remoteMessage.from}, data=${remoteMessage.data}")
-            // CleverTap handles both standard notifications and rich Push Templates (Carousels, Timers, 5-icon, etc.)
-            val handled = CTFcmMessageHandler().createNotification(applicationContext, remoteMessage)
-            Log.d(TAG, "CleverTap processed push notification: $handled")
+            val extras = android.os.Bundle()
+            for ((key, value) in remoteMessage.data) {
+                extras.putString(key, value)
+            }
+
+            // Normalize account ID in case CleverTap dashboard is a Test Project (prefixes TEST-)
+            val defaultInstance = CleverTapAPI.getDefaultInstance(applicationContext)
+            val defaultAccountId = defaultInstance?.accountId ?: CleverTapConfig.ACCOUNT_ID
+            val incomingAccountId = extras.getString("wzrk_acct_id")
+            if (incomingAccountId != null && (incomingAccountId.contains(defaultAccountId) || defaultAccountId.contains(incomingAccountId))) {
+                extras.putString("wzrk_acct_id", defaultAccountId)
+            }
+
+            // Delegate to CleverTap push notification handler (supports core push & rich push templates)
+            com.clevertap.android.sdk.pushnotification.PushNotificationHandler
+                .getPushNotificationHandler()
+                .onMessageReceived(applicationContext, extras, "FCM")
+
+            Log.d(TAG, "CleverTap push notification handled successfully")
         } catch (t: Throwable) {
             Log.e(TAG, "Error rendering CleverTap push notification", t)
         }

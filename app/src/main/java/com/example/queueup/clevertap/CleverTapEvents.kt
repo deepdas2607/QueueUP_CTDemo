@@ -24,6 +24,7 @@ object CleverTapEvents {
         const val QUEUE_LEFT = "Queue Left"
         const val QUEUE_COMPLETED = "Queue Completed"
         const val CHARGED = "Charged"
+        const val DASHBOARD_REFRESHED = "Dashboard Refreshed"
     }
 
     // Dispatches a custom event with key-value properties to CleverTap SDK.
